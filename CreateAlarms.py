@@ -8,71 +8,67 @@ import sys
 #####################################################################################################################################################
 # List of possible properties
 #####################################################################################################################################################
-NAMES = ["Code", "Severity", "Behavior"]
+KEYS = ["Code", "Severity", "Behavior"]
 
 #####################################################################################################################################################
 # Class definition
 #####################################################################################################################################################
 class PropertyClass:
-    Name = 0        # Index to NAMES list 
-    Task = ""      
-    Valid = False 
-    Value = "" 
+    Name = ""
+    Key = 0        # Index to KEYS list
+    Task = ""
+    Valid = False
+    Value = ""
     
-    def __init__(self, Name, Task, Valid, Value):
+    def __init__(self, Name, Key, Task, Valid, Value):
         self.Name = Name
+        self.Key = Key
         self.Task = Task
         self.Valid = Valid
         self.Value = Value
+
+    def __str__(self) -> str:
+        return("["+self.Name+","+str(self.Key)+","+self.Task+","+str(self.Valid)+","+self.Value+"]")
 
 #####################################################################################################################################################
 # Open Global.typ file
 #####################################################################################################################################################
 GlobalPath = os.path.dirname(os.path.abspath(__file__))
-if (GlobalPath.find("Logical") != -1):
-    GlobalPath = GlobalPath[:GlobalPath.find("Logical") + 7]
-    TypPath = os.path.join(GlobalPath, "Global.typ")
-    if os.path.isfile(TypPath):
-        GlobalTyp = open(TypPath, "r")
-    else:
-        print("File Global.typ does not exist.")
-        sys.exit()
+if (GlobalPath.find("Logical") == -1):
+    sys.exit("Directory 'Logical' does not exist.")
+
+GlobalPath = GlobalPath[:GlobalPath.find("Logical") + 7]
+TypPath = os.path.join(GlobalPath, "Global.typ")
+
+if not os.path.isfile(TypPath):
+    sys.exit("File 'Global.typ' does not exist.")
+
+with open(TypPath, "r") as f:
+    TypContent = f.read()
 
 #####################################################################################################################################################
 # Parse data from Global.typ file
 #####################################################################################################################################################
-for Row in GlobalTyp:
-    print(Row)
+PatternStructure = r"g([a-zA-Z0-9]{1,10})(Error|Info|Warning)Type[^\n]+\n([\s\S]*?)END_STRUCT"
+PatternMember = r"([a-zA-Z0-9_]{1,32}).*?BOOL\s?\(\*.*?\*\)\s?\(\*(.*?)\*\).?\n"
+PatternPair = r"([a-zA-Z0-9]*)[ ]{0,}=[ ]{0,}([a-zA-Z0-9]*)"
+
+Properties = []
+Structures = re.findall(PatternStructure, TypContent)
+for Structure in Structures:
+    Members = re.findall(PatternMember, Structure[2])
+    for Member in Members:
+        Pairs = re.findall(PatternPair, Member[1])
+        for Pair in Pairs:
+            try:
+                Key = Pair[0].capitalize()
+                Index = KEYS.index(Key)
+                Properties.append(PropertyClass(Member[0], Index, Structure[0], True, Pair[1]))
+            except ValueError:
+                print("[Warning] Key '"+Key+"' of member '"+Structure[0]+Structure[1]+"."+Member[0]+"' is not valid.")
 
 #####################################################################################################################################################
-# Close Global.typ file
+# Debug print
 #####################################################################################################################################################
-GlobalTyp.close()
-        
-# a = 1 or 0
-# property = Property()
-# ######
-
-# property.name = 0
-# property.value = "123"
-# property.valid = True
-
-# property.name = 1
-# property.value = "456"
-# property.valid = True
-# obj.append(Obj("task1", [Property(0, "5", True), Property(0, "5", True)]))
-
-# property.name = 0
-# property.value = "789"
-# property.valid = True
-
-# property.name = 1
-# property.value = "000"
-# property.valid = True
-# obj.append(Obj("task2", property))
-
-# ######
-
-# ######
-# for item in obj:
-#     print(item.name)
+for Item in Properties:
+    print(Item)
