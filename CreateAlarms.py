@@ -33,12 +33,12 @@ class PropertyClass:
 #####################################################################################################################################################
 # Open Global.typ file
 #####################################################################################################################################################
-GlobalPath = os.path.dirname(os.path.abspath(__file__))
-if (GlobalPath.find("Logical") == -1):
+LogicalPath = os.path.dirname(os.path.abspath(__file__))
+if (LogicalPath.find("Logical") == -1):
     sys.exit("Directory 'Logical' does not exist.")
 
-GlobalPath = GlobalPath[:GlobalPath.find("Logical") + 7]
-TypPath = os.path.join(GlobalPath, "Global.typ")
+LogicalPath = LogicalPath[:LogicalPath.find("Logical") + 7]
+TypPath = os.path.join(LogicalPath, "Global.typ")
 
 if not os.path.isfile(TypPath):
     sys.exit("File 'Global.typ' does not exist.")
@@ -72,3 +72,23 @@ for Structure in Structures:
 #####################################################################################################################################################
 for Item in Properties:
     print(Item)
+
+#####################################################################################################################################################
+# Validity of dependencies
+#####################################################################################################################################################
+
+# No validity of dependencies with basic properties
+
+#####################################################################################################################################################
+# Get alarm names list of TMX file
+#####################################################################################################################################################
+TmxPath = os.path.join(LogicalPath, "Alarms", "Alarms.tmx")
+if os.path.isfile(TmxPath):
+    TmxFile = open(TmxPath, "r")
+    
+    # Get alarm names
+
+    TmxFile.close()
+else:
+    print("File Global.typ does not exist.")
+    sys.exit()
