@@ -28,15 +28,18 @@ class PropertyClass:
 #####################################################################################################################################################
 # Open Global.typ file
 #####################################################################################################################################################
-GlobalPath = os.path.dirname(os.path.abspath(__file__))
-if (GlobalPath.find("Logical") != -1):
-    GlobalPath = GlobalPath[:GlobalPath.find("Logical") + 7]
-    TypPath = os.path.join(GlobalPath, "Global.typ")
+LogicalPath = os.path.dirname(os.path.abspath(__file__))
+if (LogicalPath.find("Logical") != -1):
+    LogicalPath = LogicalPath[:LogicalPath.find("Logical") + 7]
+    TypPath = os.path.join(LogicalPath, "Global.typ")
     if os.path.isfile(TypPath):
         GlobalTyp = open(TypPath, "r")
     else:
         print("File Global.typ does not exist.")
         sys.exit()
+else:
+    print("Cannot find the Logical folder.")
+    sys.exit()
 
 #####################################################################################################################################################
 # Parse data from Global.typ file
@@ -48,7 +51,27 @@ for Row in GlobalTyp:
 # Close Global.typ file
 #####################################################################################################################################################
 GlobalTyp.close()
-        
+
+#####################################################################################################################################################
+# Validity of dependencies
+#####################################################################################################################################################
+
+# No validity of dependencies with basic properties
+
+#####################################################################################################################################################
+# Get alarm names list of TMX file
+#####################################################################################################################################################
+TmxPath = os.path.join(LogicalPath, "Alarms", "Alarms.tmx")
+if os.path.isfile(TmxPath):
+    TmxFile = open(TmxPath, "r")
+    
+    # Get alarm names
+
+    TmxFile.close()
+else:
+    print("File Global.typ does not exist.")
+    sys.exit()
+
 # a = 1 or 0
 # property = Property()
 # ######
