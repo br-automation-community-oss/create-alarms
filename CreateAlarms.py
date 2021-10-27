@@ -9,7 +9,7 @@ import xml.etree.ElementTree as et
 #####################################################################################################################################################
 # Debug mode (debug print)
 #####################################################################################################################################################
-DEBUG = False
+DEBUG = True
 
 #####################################################################################################################################################
 # List of possible properties
@@ -23,18 +23,20 @@ class PropertyClass:
     Name = ""
     Key = 0        # Index to KEYS list
     Task = ""
+    Type = ""
     Valid = False
     Value = ""
     
-    def __init__(self, Name, Key, Task, Valid, Value):
+    def __init__(self, Name, Key, Task, Type, Valid, Value):
         self.Name = Name
         self.Key = Key
         self.Task = Task
+        self.Type = Type
         self.Valid = Valid
         self.Value = Value
 
     def __str__(self) -> str:
-        return("["+self.Name+","+str(self.Key)+","+self.Task+","+str(self.Valid)+","+self.Value+"]")
+        return("["+self.Task+","+self.Type+","+self.Name+","+str(self.Key)+","+self.Value+","+str(self.Valid)+"]")
 
 #####################################################################################################################################################
 # Open Global.typ file
@@ -82,7 +84,7 @@ for Structure in Structures:
             try:
                 Key = Pair[0].capitalize()
                 Index = KEYS.index(Key)
-                Properties.append(PropertyClass(Member[0], Index, Structure[0], True, Pair[1]))
+                Properties.append(PropertyClass(Member[0], Index, Structure[0], Structure[1], True, Pair[1]))
             except ValueError:
                 print("Warning: Key '"+Key+"' of member 'g"+Structure[0]+Structure[1]+"Type."+Member[0]+"' is not valid.")
 
@@ -116,3 +118,23 @@ for TmxItem in TmxRoot.findall(".//tu"):
 
 if DEBUG:
     print(TmxAlarms)
+
+#####################################################################################################################################################
+# Compare alarm names
+#####################################################################################################################################################
+TypAlarms = []
+for Item in Properties:
+    TypAlarms.append(Item.Name)
+
+# TypSet = set(TypAlarms)
+# TmxSet = set(TmxAlarms)
+# print(TmxSet)
+# print(TypSet)
+
+# print(TmxSet.union(TypSet) - TmxSet.intersection(TypSet))
+
+    # try:
+    #     Index = TmxAlarms.index(Item.Name)
+    #     print("Info: Alarm '"+Item.Name+"' already exists in Alarms.tmx file.")
+    # except ValueError:
+    #     print("Create '"+Item.Name+"' in Alarms.tmx file.")
