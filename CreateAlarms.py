@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+import xml.etree.ElementTree as et
 
 #####################################################################################################################################################
 # Debug mode (debug print)
@@ -103,12 +104,15 @@ if DEBUG:
 # Get alarm names list of TMX file
 #####################################################################################################################################################
 TmxPath = os.path.join(LogicalPath, "Alarms", "Alarms.tmx")
-if os.path.isfile(TmxPath):
-    TmxFile = open(TmxPath, "r")
-    
-    # Get alarm names
+if not os.path.isfile(TmxPath):
+    sys.exit("File 'Alarms.tmx' does not exist.")
 
-    TmxFile.close()
-else:
-    print("File Alarms.tmx does not exist.")
-    sys.exit()
+TmxTree = et.parse(TmxPath)
+TmxRoot = TmxTree.getroot()
+
+TmxAlarms = []
+for TmxItem in TmxRoot.findall(".//tu"):
+    TmxAlarms.append(TmxItem.attrib["tuid"])
+
+if DEBUG:
+    print(TmxAlarms)
