@@ -109,8 +109,10 @@ if DEBUG:
 # No validity of dependencies with basic properties
 
 #####################################################################################################################################################
-# Get alarm names list of TMX file
+# Update TMX file
 #####################################################################################################################################################
+
+# Get alarm names list from TMX file
 TmxPath = os.path.join(LogicalPath, "Alarms", "Alarms.tmx")
 if not os.path.isfile(TmxPath):
     sys.exit("File 'Alarms.tmx' does not exist.")
@@ -124,28 +126,20 @@ for TmxItem in TmxRoot.findall(".//tu"):
 
 if DEBUG: print("Tmx alamrs: " + str(TmxAlarms))
 
-#####################################################################################################################################################
-# Get alarm names from Global.typ with unique alarm name
-#####################################################################################################################################################
-# Get all alarm names
+# Get alarm names list from Global.typ file
 TypAlarms = []
 for Alarm in Alarms:
     TypAlarms.append("g" + Alarm["Task"] + "." + Alarm["Type"] + "." + Alarm["Name"])
 
 if DEBUG: print("Typ alarms: " + str(TypAlarms))
 
-#####################################################################################################################################################
-# Compare alarm names
-#####################################################################################################################################################
+# Compare alarm names lists
 NewAlarms = list(set(TypAlarms) - set(TmxAlarms))
 MissingAlarms = list(set(TmxAlarms) - set(TypAlarms))
 if DEBUG:
     print("New alarms are: " + str(NewAlarms))
     print("Missing alarms are: " + str(MissingAlarms))
 
-#####################################################################################################################################################
-# Update TMX file
-#####################################################################################################################################################
 # Remove missing alarms
 Parent = TmxRoot.find(".//body")
 for TmxAlarm in Parent.findall(".//tu"):
@@ -211,7 +205,7 @@ MpAlarmRoot = MpAlarmTree.getroot()
 
 # Remove old configuration
 Parent = MpAlarmRoot.find(".//Group[@ID=\"mapp.AlarmX.Core.Configuration\"]")
-for Group in Parent.findall("Group"): # TODO pokud je vložený čistý MpAlarmXCore, tak v něm není element Group a tohle nic nenajde
+for Group in Parent.findall("Group"): # TODO pokud je v projektu vložený čistý MpAlarmXCore, tak v něm není element Group a tohle nic nenajde
     print(Group.attrib)
     Parent.remove(Group)
 
@@ -222,7 +216,7 @@ for Group in Parent.findall("Group"): # TODO pokud je vložený čistý MpAlarmX
 MpAlarmTree.write(MpAlarmPath)
 
 #####################################################################################################################################################
-# Update alarms program TODO psát chybu, když nenajde sekci pro autogen, přidat typy Flag
+# Update alarms program TODO přidat datové typy Flag, udělat jazyk C, možná udělat generování alarmů lépe přes def
 #####################################################################################################################################################
 LANGUAGE_C = 0
 LANGUAGE_ST = 1
@@ -233,7 +227,7 @@ if ProgramLanguage == LANGUAGE_ST:
     if not os.path.isfile(ProgramPath):
         sys.exit("File 'Alarms" + Extensions[ProgramLanguage] + "' does not exist.")
     else:
-        # Add new alarms
+        # Create whole automatically generated section and insert it to the file
         ProgramFile = open(ProgramPath, "r")
         ProgramText = ""
         ErrorLastTaskName = ""
@@ -245,11 +239,14 @@ if ProgramLanguage == LANGUAGE_ST:
         InfoLastTaskName = ""
         ProgramInfoSetText = "\n\n\t(************************************************************* Info set ************************************************************)"
         ProgramInfoResetText = "\n\n\t(************************************************************ Info reset ***********************************************************)"
+        AutomaticSectionStartFound = False
         InAutomaticSection = False
+        AutomaticSectionEndFound = False
         for ProgramLine in ProgramFile:
             if not InAutomaticSection:
                 ProgramText += ProgramLine
             if (ProgramLine.find("// START OF AUTOMATIC CODE GENERATION //") != -1): # Automatic generation section start
+                AutomaticSectionStartFound = True
                 InAutomaticSection = True
                 for Alarm in Alarms:
                     AlarmVariable = "g" + Alarm["Task"] + "." + Alarm["Type"] + "." + Alarm["Name"]
@@ -296,10 +293,16 @@ if ProgramLanguage == LANGUAGE_ST:
                 ProgramText += ProgramErrorSetText + ProgramErrorResetText + ProgramWarningSetText + ProgramWarningResetText + ProgramInfoSetText + ProgramInfoResetText
 
             elif (ProgramLine.find("// END OF AUTOMATIC CODE GENERATION //") != -1): # Automatic generation section end
+                AutomaticSectionEndFound = True
                 InAutomaticSection = False
                 ProgramText += "\n\n" + ProgramLine
         
         ProgramFile.close()
-        ProgramFile = open(ProgramPath,"w")
-        ProgramFile.write(ProgramText)
-        ProgramFile.close()
+        if not AutomaticSectionStartFound:
+            sys.exit("Start of automatically generated section in Alarms" + Extensions[ProgramLanguage] + " not found.")
+        elif not AutomaticSectionEndFound:
+            sys.exit("End of automatically generated section in Alarms" + Extensions[ProgramLanguage] + " not found.")
+        else:
+            ProgramFile = open(ProgramPath,"w")
+            ProgramFile.write(ProgramText)
+            ProgramFile.close()
