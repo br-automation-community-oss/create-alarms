@@ -169,9 +169,46 @@ TmxFile.close()
 #TmxBody = TmxRoot.find("//body")
 #print(TmxBody)
 
+#####################################################################################################################################################
+# Update mpalarmxcore
+#####################################################################################################################################################
 
-# try:
-#     Index = TmxAlarms.index(Item.Name)
-#     print("Info: Alarm '"+Item.Name+"' already exists in Alarms.tmx file.")
-# except ValueError:
-#     print("Create '"+Item.Name+"' in Alarms.tmx file.")
+# Create path to mpalarmxcore
+ConfigName = []
+ConfigPath = os.path.dirname(os.path.abspath(__file__))
+if (ConfigPath.find("Logical") != -1):
+    ConfigPath = ConfigPath[:ConfigPath.find("Logical")]
+    for Physical in os.listdir(ConfigPath):
+        if (Physical.find("Physical") != -1):
+            ConfigPath += "Physical"
+            for Config in os.listdir(ConfigPath):
+                if not(Config.endswith(".pkg")):
+                    ConfigName.append(Config)
+            break
+
+CpuPath = os.path.join(ConfigPath, ConfigName[0])
+for Cpu in os.listdir(CpuPath):
+    TmpPath = os.path.join(CpuPath, Cpu)
+    if os.path.isdir(os.path.join(CpuPath, Cpu)):
+        CpuPath = os.path.join(CpuPath, Cpu)
+
+MpAlarmPath = os.path.join(CpuPath, "mappServices", "Alarms.mpalarmxcore")
+
+# Load file
+if not os.path.isfile(MpAlarmPath):
+    sys.exit("File 'Alarms.mpalarmxcore' does not exist.")
+
+MpAlarmTree = et.parse(MpAlarmPath)
+MpAlarmRoot = MpAlarmTree.getroot()
+
+# Remove old configuration
+Parent = MpAlarmRoot.find(".//Group[@ID=\"mapp.AlarmX.Core.Configuration\"]")
+for Group in Parent.findall("Group"):
+    print(Group.attrib)
+    Parent.remove(Group)
+
+# Insert new configuration
+#
+
+# Save file
+MpAlarmTree.write(MpAlarmPath)
