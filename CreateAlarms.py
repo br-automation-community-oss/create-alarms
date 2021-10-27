@@ -6,6 +6,11 @@ import re
 import sys
 
 #####################################################################################################################################################
+# Debug mode (debug print)
+#####################################################################################################################################################
+DEBUG = False
+
+#####################################################################################################################################################
 # List of possible properties
 #####################################################################################################################################################
 KEYS = ["Code", "Severity", "Behavior"]
@@ -49,9 +54,22 @@ with open(TypPath, "r") as f:
 #####################################################################################################################################################
 # Parse data from Global.typ file
 #####################################################################################################################################################
+
+# Matches structure definition, returns three groups:
+# 1. Name of the structure
+# 2. Structure suffix (Error, Info, Warning)
+# 3. Members of the structure
 PatternStructure = r"g([a-zA-Z0-9]{1,10})(Error|Info|Warning)Type[^\n]+\n([\s\S]*?)END_STRUCT"
-PatternMember = r"([a-zA-Z0-9_]{1,32}).*?BOOL\s?\(\*.*?\*\)\s?\(\*(.*?)\*\).?\n"
-PatternPair = r"([a-zA-Z0-9]*)[ ]{0,}=[ ]{0,}([a-zA-Z0-9]*)"
+
+# Matches BOOL structure members with Description[2] filled in, returns two groups:
+# 1. Name of the member
+# 2. Content of Description[2]
+PatternMember = r"([a-zA-Z0-9_]{1,32}).*?BOOL[\s;]*?\(\*.*?\*\)\s*?\(\*(.+?)\*\)\s*?(?:\(.*?)?[ ]*?\n"
+
+# Matches Key=Value pairs, returns two groups:
+# 1. Key
+# 2. Value
+PatternPair = r"([a-zA-Z0-9]+)[ ]*?=[ ]*?([a-zA-Z0-9]+)"
 
 Properties = []
 Structures = re.findall(PatternStructure, TypContent)
@@ -65,13 +83,15 @@ for Structure in Structures:
                 Index = KEYS.index(Key)
                 Properties.append(PropertyClass(Member[0], Index, Structure[0], True, Pair[1]))
             except ValueError:
-                print("[Warning] Key '"+Key+"' of member '"+Structure[0]+Structure[1]+"."+Member[0]+"' is not valid.")
+                print("Warning: Key '"+Key+"' of member 'g"+Structure[0]+Structure[1]+"Type."+Member[0]+"' is not valid.")
 
 #####################################################################################################################################################
 # Debug print
 #####################################################################################################################################################
-for Item in Properties:
-    print(Item)
+if DEBUG:
+    print("Total properties: "+str(len(Properties)))
+    for Item in Properties:
+        print(Item)
 
 #####################################################################################################################################################
 # Validity of dependencies
@@ -90,5 +110,5 @@ if os.path.isfile(TmxPath):
 
     TmxFile.close()
 else:
-    print("File Global.typ does not exist.")
+    print("File Alarms.tmx does not exist.")
     sys.exit()
