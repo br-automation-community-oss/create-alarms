@@ -117,24 +117,61 @@ for TmxItem in TmxRoot.findall(".//tu"):
     TmxAlarms.append(TmxItem.attrib["tuid"])
 
 if DEBUG:
-    print(TmxAlarms)
+    print("Tmx alamrs: " + str(TmxAlarms))
+
+#####################################################################################################################################################
+# Get alarm names from Global.typ with unique alarm name
+#####################################################################################################################################################
+# Get all alarm names
+TypAlarms = []
+for Item in Properties:
+    TypAlarms.append("g" + Item.Task + "." + Item.Type + "." + Item.Name)
+# Convert list to set to get unique names
+TypAlarms = set(TypAlarms)
+
+if DEBUG:
+    print("Typ alarms: " + str(TypAlarms))
 
 #####################################################################################################################################################
 # Compare alarm names
 #####################################################################################################################################################
-TypAlarms = []
-for Item in Properties:
-    TypAlarms.append(Item.Name)
+NewAlarms = list(set(TypAlarms) - set(TmxAlarms))
+MissingAlarms = list(set(TmxAlarms) - set(TypAlarms))
+if DEBUG:
+    print("New alamrs are: " + str(NewAlarms))
+    print("Missing alamrs are: " + str(MissingAlarms))
 
-# TypSet = set(TypAlarms)
-# TmxSet = set(TmxAlarms)
-# print(TmxSet)
-# print(TypSet)
+#####################################################################################################################################################
+# Update TMX file
+#####################################################################################################################################################
+# Remove missing alarms
+Parent = TmxRoot.find(".//body")
+for TmxAlarm in Parent.findall(".//tu"):
+    if TmxAlarm.get('tuid') in MissingAlarms:
+        Parent.remove(TmxAlarm)
+TmxTree.write(TmxPath)
 
-# print(TmxSet.union(TypSet) - TmxSet.intersection(TypSet))
+# Add new alarms
+TmxFile = open(TmxPath, "r")
+TmxText = ""
+for TmxLine in TmxFile:
+    if (TmxLine.find("</body>") != -1): # End found
+        for NewAlarm in NewAlarms:
+            TmxText += "\t<tu tuid=\"" + NewAlarm + "\" />\n"
+    TmxText += TmxLine
+TmxFile.close()
+TmxFile = open(TmxPath,"w")
+TmxFile.write(TmxText)
+TmxFile.close()
 
-    # try:
-    #     Index = TmxAlarms.index(Item.Name)
-    #     print("Info: Alarm '"+Item.Name+"' already exists in Alarms.tmx file.")
-    # except ValueError:
-    #     print("Create '"+Item.Name+"' in Alarms.tmx file.")
+#TmxTree = et.parse(TmxPath)
+#TmxRoot = TmxTree.getroot()
+#TmxBody = TmxRoot.find("//body")
+#print(TmxBody)
+
+
+# try:
+#     Index = TmxAlarms.index(Item.Name)
+#     print("Info: Alarm '"+Item.Name+"' already exists in Alarms.tmx file.")
+# except ValueError:
+#     print("Create '"+Item.Name+"' in Alarms.tmx file.")
