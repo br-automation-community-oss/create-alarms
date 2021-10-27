@@ -17,28 +17,6 @@ DEBUG = True
 KEYS = ["Code", "Severity", "Behavior"]
 
 #####################################################################################################################################################
-# Class definition
-#####################################################################################################################################################
-class PropertyClass:
-    Name = ""
-    Key = 0        # Index to KEYS list
-    Task = ""
-    Type = ""
-    Valid = False
-    Value = ""
-    
-    def __init__(self, Name, Key, Task, Type, Valid, Value):
-        self.Name = Name
-        self.Key = Key
-        self.Task = Task
-        self.Type = Type
-        self.Valid = Valid
-        self.Value = Value
-
-    def __str__(self) -> str:
-        return("["+self.Task+","+self.Type+","+self.Name+","+str(self.Key)+","+self.Value+","+str(self.Valid)+"]")
-
-#####################################################################################################################################################
 # Open Global.typ file
 #####################################################################################################################################################
 LogicalPath = os.path.dirname(os.path.abspath(__file__))
@@ -74,19 +52,41 @@ PatternMember = r"([a-zA-Z0-9_]{1,32}).*?BOOL[\s;]*?\(\*.*?\*\)\s*?\(\*(.+?)\*\)
 # 2. Value
 PatternPair = r"([a-zA-Z0-9]+)[ ]*?=[ ]*?([a-zA-Z0-9]+)"
 
-Properties = []
+# Alarm {
+#     Task: ""
+#     Type: ""
+#     Name: ""
+#     Properties: [
+#         {
+#           Key: ""
+#           Value: ""
+#           Valid: False/True
+#         }
+#     ]
+# }
+Alarms = []
 Structures = re.findall(PatternStructure, TypContent)
 for Structure in Structures:
     Members = re.findall(PatternMember, Structure[2])
     for Member in Members:
         Pairs = re.findall(PatternPair, Member[1])
+        Properties = []
         for Pair in Pairs:
             try:
                 Key = Pair[0].capitalize()
                 Index = KEYS.index(Key)
-                Properties.append(PropertyClass(Member[0], Index, Structure[0], Structure[1], True, Pair[1]))
+                Properties.append({"Key": Key, "Value": Pair[1], "Valid": True})
             except ValueError:
-                print("Warning: Key '"+Key+"' of member 'g"+Structure[0]+Structure[1]+"Type."+Member[0]+"' is not valid.")
+                print("Warning: Key '"+Key+"' of member 'g"+Structure[0]+Structure[1]+"Type."+Member[0]+"' is not valid.")     
+        Alarms.append({"Task": Structure[0], "Type": Structure[1], "Name": Member[0], "Properties": Properties})
+
+if DEBUG: print(Alarms)
+
+# Example
+# for Alarm in Alarms:
+#     print(Alarm["Name"])
+#     for Property in Alarm["Properties"]:
+#         print(Property["Key"],Property["Value"])
 
 #####################################################################################################################################################
 # Debug print
@@ -124,13 +124,12 @@ if DEBUG:
 #####################################################################################################################################################
 # Get all alarm names
 TypAlarms = []
-for Item in Properties:
-    TypAlarms.append("g" + Item.Task + "." + Item.Type + "." + Item.Name)
+for Alarm in Alarms:
+    TypAlarms.append("g" + Alarm["Task"] + "." + Alarm["Type"] + "." + Alarm["Name"])
 # Convert list to set to get unique names
 TypAlarms = set(TypAlarms)
 
-if DEBUG:
-    print("Typ alarms: " + str(TypAlarms))
+if DEBUG: print("Typ alarms: " + str(TypAlarms))
 
 #####################################################################################################################################################
 # Compare alarm names
@@ -138,8 +137,8 @@ if DEBUG:
 NewAlarms = list(set(TypAlarms) - set(TmxAlarms))
 MissingAlarms = list(set(TmxAlarms) - set(TypAlarms))
 if DEBUG:
-    print("New alamrs are: " + str(NewAlarms))
-    print("Missing alamrs are: " + str(MissingAlarms))
+    print("New alarms are: " + str(NewAlarms))
+    print("Missing alarms are: " + str(MissingAlarms))
 
 #####################################################################################################################################################
 # Update TMX file
