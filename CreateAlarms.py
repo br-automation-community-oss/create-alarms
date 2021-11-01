@@ -204,13 +204,24 @@ MpAlarmTree = et.parse(MpAlarmPath)
 MpAlarmRoot = MpAlarmTree.getroot()
 
 # Remove old configuration
-Parent = MpAlarmRoot.find(".//Group[@ID=\"mapp.AlarmX.Core.Configuration\"]")
-for Group in Parent.findall("Group"): # TODO pokud je v projektu vložený čistý MpAlarmXCore, tak v něm není element Group a tohle nic nenajde
-    print(Group.attrib)
+# Parent = MpAlarmRoot.find(".//Group[@ID=\"mapp.AlarmX.Core.Configuration\"]")
+Parent = MpAlarmRoot.find(".//Element[@Type=\"mpalarmxcore\"]")
+for Group in Parent.findall(".//Group[@ID=\"mapp.AlarmX.Core.Configuration\"]"):
     Parent.remove(Group)
 
+MpAlarmList = et.Element("Group", {"ID": "mapp.AlarmX.Core.Configuration"})
+
 # Insert new configuration
-#
+for Index, Alarm in enumerate(Alarms):
+    Elem = et.Element("Group", {"ID": "["+str(Index)+"]"})
+    Name = "g"+Alarm["Task"]+"."+Alarm["Type"]+"."+Alarm["Name"]
+    Message = "{$User/Alarms/"+Name+"}"
+    et.SubElement(Elem, "Property", {"ID": "Name", "Value": Name})
+    et.SubElement(Elem, "Property", {"ID": "Message", "Value": Message})
+    for Property in Alarm["Properties"]:
+        et.SubElement(Elem, "Property", {"ID": Property["Key"], "Value": Property["Value"]})
+    MpAlarmList.append(Elem)
+Parent.append(MpAlarmList)
 
 # Save file
 MpAlarmTree.write(MpAlarmPath)
