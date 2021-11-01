@@ -1,9 +1,7 @@
 #####################################################################################################################################################
 # Dependencies
 #####################################################################################################################################################
-import os
-import re
-import sys
+import os, re, sys
 import xml.etree.ElementTree as et
 
 # What will be in configuration GUI:
@@ -22,6 +20,29 @@ DEBUG = True
 KEYS = ["Code", "Severity", "Behavior"]
 
 #####################################################################################################################################################
+# Global functions
+#####################################################################################################################################################
+# Finds file in directory and subdirectories and returns path to first found file
+def FindFilePath(SourcePath, FileName):
+    FilePath = ""
+    for DirPath, DirNames, FileNames in os.walk(SourcePath):
+        for FileNam in [File for File in FileNames if File == FileName]:
+            FilePath = (os.path.join(DirPath, FileNam))
+    return FilePath
+
+# Checks if file exists and terminates script if not
+def IsFile(FilePath):
+    if not os.path.isfile(FilePath):
+        sys.exit("File " + os.path.basename(FilePath) + " does not exist.")
+    return True
+
+# Checks if directory exists and terminates script if not
+def IsDir(DirPath):
+    if not os.path.isdir(DirPath):
+        sys.exit("Directory " + DirPath + " does not exist.")
+    return True
+
+#####################################################################################################################################################
 # Open Global.typ file
 #####################################################################################################################################################
 LogicalPath = os.path.dirname(os.path.abspath(__file__))
@@ -30,9 +51,7 @@ if (LogicalPath.find("Logical") == -1):
 
 LogicalPath = LogicalPath[:LogicalPath.find("Logical") + 7]
 TypPath = os.path.join(LogicalPath, "Global.typ")
-
-if not os.path.isfile(TypPath):
-    sys.exit("File 'Global.typ' does not exist.")
+IsFile(TypPath)
 
 with open(TypPath, "r") as f:
     TypContent = f.read()
@@ -113,9 +132,8 @@ if DEBUG:
 #####################################################################################################################################################
 
 # Get alarm names list from TMX file
-TmxPath = os.path.join(LogicalPath, "Alarms", "Alarms.tmx")
-if not os.path.isfile(TmxPath):
-    sys.exit("File 'Alarms.tmx' does not exist.")
+TmxPath = FindFilePath(LogicalPath, "Alarms.tmx")
+IsFile(TmxPath)
 
 TmxTree = et.parse(TmxPath)
 TmxRoot = TmxTree.getroot()
@@ -197,8 +215,7 @@ for Cpu in os.listdir(CpuPath):
 MpAlarmPath = os.path.join(CpuPath, "mappServices", "Alarms.mpalarmxcore")
 
 # Load file
-if not os.path.isfile(MpAlarmPath):
-    sys.exit("File 'Alarms.mpalarmxcore' does not exist.")
+IsFile(MpAlarmPath)
 
 MpAlarmTree = et.parse(MpAlarmPath)
 MpAlarmRoot = MpAlarmTree.getroot()
@@ -227,17 +244,26 @@ Parent.append(MpAlarmList)
 MpAlarmTree.write(MpAlarmPath)
 
 #####################################################################################################################################################
-# Update alarms program TODO přidat datové typy Flag, udělat jazyk C, možná udělat generování alarmů lépe přes def
+# Update alarms program TODO přidat datové typy Flag, udělat jazyk C
 #####################################################################################################################################################
+def AlarmSetReset(VariableSetText, VariableResetText, AlarmVariable):
+    VariableSetText += """
+	IF (""" + AlarmVariable + """ >  Flag.""" + AlarmVariable + """) THEN
+		MpAlarmXSet(gAlarmXCore, '""" + AlarmVariable + """');
+	END_IF;"""
+    VariableResetText += """
+	IF (""" + AlarmVariable + """ <  Flag.""" + AlarmVariable + """) THEN
+		MpAlarmXReset(gAlarmXCore, '""" + AlarmVariable + """');
+	END_IF;"""
+    return VariableSetText, VariableResetText
+
 LANGUAGE_C = 0
 LANGUAGE_ST = 1
 Extensions = [".c", ".st"]
 ProgramLanguage = LANGUAGE_ST
 if ProgramLanguage == LANGUAGE_ST:
-    ProgramPath = os.path.join(LogicalPath, "Alarms", "Alarms" + Extensions[ProgramLanguage])
-    if not os.path.isfile(ProgramPath):
-        sys.exit("File 'Alarms" + Extensions[ProgramLanguage] + "' does not exist.")
-    else:
+    ProgramPath = FindFilePath(LogicalPath, "Alarms" + Extensions[ProgramLanguage])
+    if IsFile(ProgramPath):
         # Create whole automatically generated section and insert it to the file
         ProgramFile = open(ProgramPath, "r")
         ProgramText = ""
@@ -265,40 +291,19 @@ if ProgramLanguage == LANGUAGE_ST:
                         if not(ErrorLastTaskName == Alarm["Task"]):
                             ProgramErrorSetText += "\n\n\t// Task " + Alarm["Task"]
                             ProgramErrorResetText += "\n\n\t// Task " + Alarm["Task"]
-                        ProgramErrorSetText += """
-	IF (""" + AlarmVariable + """ >  Flag.""" + AlarmVariable + """) THEN
-		MpAlarmXSet(gAlarmXCore, '""" + AlarmVariable + """');
-	END_IF;"""
-                        ProgramErrorResetText += """
-	IF (""" + AlarmVariable + """ <  Flag.""" + AlarmVariable + """) THEN
-		MpAlarmXReset(gAlarmXCore, '""" + AlarmVariable + """');
-	END_IF;"""
+                        ProgramErrorSetText, ProgramErrorResetText = AlarmSetReset(ProgramErrorSetText, ProgramErrorResetText, AlarmVariable)
                         ErrorLastTaskName = Alarm["Task"]
                     elif Alarm["Type"] == "Warning":
                         if not(WarningLastTaskName == Alarm["Task"]):
                             ProgramWarningSetText += "\n\n\t// Task " + Alarm["Task"]
                             ProgramWarningResetText += "\n\n\t// Task " + Alarm["Task"]
-                        ProgramWarningSetText += """
-	IF (""" + AlarmVariable + """ >  Flag.""" + AlarmVariable + """) THEN
-		MpAlarmXSet(gAlarmXCore, '""" + AlarmVariable + """');
-	END_IF;"""
-                        ProgramWarningResetText += """
-	IF (""" + AlarmVariable + """ <  Flag.""" + AlarmVariable + """) THEN
-		MpAlarmXReset(gAlarmXCore, '""" + AlarmVariable + """');
-	END_IF;"""
+                        ProgramWarningSetText, ProgramWarningResetText = AlarmSetReset(ProgramWarningSetText, ProgramWarningResetText, AlarmVariable)
                         WarningLastTaskName = Alarm["Task"]
                     elif Alarm["Type"] == "Info":
                         if not(InfoLastTaskName == Alarm["Task"]):
                             ProgramInfoSetText += "\n\n\t// Task " + Alarm["Task"]
                             ProgramInfoResetText += "\n\n\t// Task " + Alarm["Task"]
-                        ProgramInfoSetText += """
-	IF (""" + AlarmVariable + """ >  Flag.""" + AlarmVariable + """) THEN
-		MpAlarmXSet(gAlarmXCore, '""" + AlarmVariable + """');
-	END_IF;"""
-                        ProgramInfoResetText += """
-	IF (""" + AlarmVariable + """ <  Flag.""" + AlarmVariable + """) THEN
-		MpAlarmXReset(gAlarmXCore, '""" + AlarmVariable + """');
-	END_IF;"""
+                        ProgramInfoSetText, ProgramInfoResetText = AlarmSetReset(ProgramInfoSetText, ProgramInfoResetText, AlarmVariable)
                         InfoLastTaskName = Alarm["Task"]
 
                 ProgramText += ProgramErrorSetText + ProgramErrorResetText + ProgramWarningSetText + ProgramWarningResetText + ProgramInfoSetText + ProgramInfoResetText
