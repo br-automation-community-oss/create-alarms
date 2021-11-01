@@ -22,13 +22,13 @@ KEYS = ["Code", "Severity", "Behavior"]
 #####################################################################################################################################################
 # Global functions
 #####################################################################################################################################################
-# Finds file in directory and subdirectories, returns path to the first found file and terminates script if file does not found
-def FindFilePath(SourcePath, FileName):
+# Finds file in directory and subdirectories, returns path to the first found file and terminates script if file does not found and termination is required
+def FindFilePath(SourcePath, FileName, Terminate):
     FilePath = ""
     for DirPath, DirNames, FileNames in os.walk(SourcePath):
         for FileNam in [File for File in FileNames if File == FileName]:
             FilePath = (os.path.join(DirPath, FileNam))
-    if FilePath == "":
+    if FilePath == "" and Terminate:
         sys.exit("File " + FileName + " does not exist.")
     return FilePath
 
@@ -134,7 +134,7 @@ if DEBUG:
 #####################################################################################################################################################
 
 # Get alarm names list from TMX file
-TmxPath = FindFilePath(LogicalPath, "Alarms.tmx")
+TmxPath = FindFilePath(LogicalPath, "Alarms.tmx", True)
 
 TmxTree = et.parse(TmxPath)
 TmxRoot = TmxTree.getroot()
@@ -278,13 +278,13 @@ def AlarmSetReset(VariableSetText, VariableResetText, AlarmVariable, ProgramLang
     return VariableSetText, VariableResetText
 
 # Detect programming language
-if (FindFilePath(LogicalPath, "Alarms" + EXTENSIONS[LANGUAGE_C]) != ""):
+if (FindFilePath(LogicalPath, "Alarms" + EXTENSIONS[LANGUAGE_C], False) != ""):
     ProgramLanguage = LANGUAGE_C
 else:
     ProgramLanguage = LANGUAGE_ST
 
 # Generate cyclic program
-ProgramPath = FindFilePath(LogicalPath, "Alarms" + EXTENSIONS[ProgramLanguage])
+ProgramPath = FindFilePath(LogicalPath, "Alarms" + EXTENSIONS[ProgramLanguage], True)
 
 # Create whole automatically generated cyclic section and insert it to the file
 ProgramFile = open(ProgramPath, "r")
@@ -292,7 +292,6 @@ ProgramText = ""
 ErrorLastTaskName = ""
 WarningLastTaskName = ""
 InfoLastTaskName = ""
-FlagsText = "\n\t\n\t// Flags handling"
 AutomaticSectionStartFound = False
 InAutomaticSection = False
 
@@ -303,6 +302,7 @@ if ProgramLanguage == LANGUAGE_C:
     ProgramWarningResetText = "\n\t\n\t/********************************************************** Warning reset **********************************************************/"
     ProgramInfoSetText = "\n\t\n\t/************************************************************* Info set ************************************************************/"
     ProgramInfoResetText = "\n\t\n\t/************************************************************ Info reset ***********************************************************/"
+    FlagsText = "\n\t\n\t/********************************************************** Flags handling *********************************************************/"
 elif ProgramLanguage == LANGUAGE_ST:
     ProgramErrorSetText = "\t(************************************************************ Error set ************************************************************)"
     ProgramErrorResetText = "\n\t\n\t(*********************************************************** Error reset ***********************************************************)"
@@ -310,6 +310,7 @@ elif ProgramLanguage == LANGUAGE_ST:
     ProgramWarningResetText = "\n\t\n\t(********************************************************** Warning reset **********************************************************)"
     ProgramInfoSetText = "\n\t\n\t(************************************************************* Info set ************************************************************)"
     ProgramInfoResetText = "\n\t\n\t(************************************************************ Info reset ***********************************************************)"
+    FlagsText = "\n\t\n\t(********************************************************** Flags handling *********************************************************)"
 
 for ProgramLine in ProgramFile:
     if not InAutomaticSection:
@@ -361,7 +362,7 @@ else:
     ProgramFile.close()
     
 # Check if Flag variable exists and create it if not
-AlarmsVarPath = FindFilePath(os.path.dirname(ProgramPath), "Alarms.var")
+AlarmsVarPath = FindFilePath(os.path.dirname(ProgramPath), "Alarms.var", True)
 AlarmsVarFile = open(AlarmsVarPath, "r")
 if not "Flag : FlagType;" in AlarmsVarFile.read():
     AlarmsVarFile.close()
@@ -374,7 +375,7 @@ AutomaticSectionStartFound = False
 InAutomaticSection = False
 AlarmsTypText = ""
 AuxiliaryText = ""
-AlarmsTypPath = FindFilePath(os.path.dirname(ProgramPath), "Alarms.typ")
+AlarmsTypPath = FindFilePath(os.path.dirname(ProgramPath), "Alarms.typ", True)
 AlarmsTypFile = open(AlarmsTypPath, "r")
 for AlarmsTypLine in AlarmsTypFile:
     if not InAutomaticSection:
