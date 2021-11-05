@@ -18,23 +18,21 @@ DEBUG = False
 #####################################################################################################################################################
 # Global functions
 #####################################################################################################################################################
-# Finds file in directory and subdirectories and returns path to first found file
-
-
-def FindFilePath(SourcePath, FileName):
+# Finds file in directory and subdirectories, returns path to the first found file and terminates script if file does not found and termination is required
+def FindFilePath(SourcePath, FileName, Terminate):
     FilePath = ""
     for DirPath, DirNames, FileNames in os.walk(SourcePath):
         for FileNam in [File for File in FileNames if File == FileName]:
             FilePath = (os.path.join(DirPath, FileNam))
+    if FilePath == "" and Terminate:
+        sys.exit("File " + FileName + " does not exist.")
     return FilePath
-
 
 # Checks if file exists and terminates script if not
 def IsFile(FilePath):
     if not os.path.isfile(FilePath):
         sys.exit("File " + os.path.basename(FilePath) + " does not exist.")
     return True
-
 
 # Checks if directory exists and terminates script if not
 def IsDir(DirPath):
@@ -73,8 +71,7 @@ Alarms = GetAlarms(TypContent)
 #####################################################################################################################################################
 
 # Get alarm names list from TMX file
-TmxPath = FindFilePath(LogicalPath, "Alarms.tmx")
-IsFile(TmxPath)
+TmxPath = FindFilePath(LogicalPath, "Alarms.tmx", True)
 
 TmxTree = et.parse(TmxPath)
 TmxRoot = TmxTree.getroot()
@@ -83,17 +80,14 @@ TmxAlarms = []
 for TmxItem in TmxRoot.findall(".//tu"):
     TmxAlarms.append(TmxItem.attrib["tuid"])
 
-if DEBUG:
-    print("Tmx alarms: " + str(TmxAlarms))
+if DEBUG: print("Tmx alamrs: " + str(TmxAlarms))
 
 # Get alarm names list from Global.typ file
 TypAlarms = []
 for Alarm in Alarms:
-    TypAlarms.append("g" + Alarm["Task"] + "." + Alarm["Type"] + "." +
-                     Alarm["Name"])
+    TypAlarms.append("g" + Alarm["Task"] + "." + Alarm["Type"] + "." + Alarm["Name"])
 
-if DEBUG:
-    print("Typ alarms: " + str(TypAlarms))
+if DEBUG: print("Typ alarms: " + str(TypAlarms))
 
 # Compare alarm names lists
 NewAlarms = list(set(TypAlarms) - set(TmxAlarms))
@@ -113,25 +107,25 @@ TmxTree.write(TmxPath)
 TmxFile = open(TmxPath, "r")
 TmxText = ""
 for TmxLine in TmxFile:
-    if (TmxLine.find("<body />") != -1):  # End found
+    if (TmxLine.find("<body />") != -1): # End found
         TmxText += TmxLine[:TmxLine.find(" />")] + ">\n"
         TmxLine = ""
         for NewAlarm in NewAlarms:
             TmxText += "\t<tu tuid=\"" + NewAlarm + "\" />\n"
         TmxText += "</body>\n"
-    elif (TmxLine.find("</body>") != -1):  # End found
+    elif (TmxLine.find("</body>") != -1): # End found
         for NewAlarm in NewAlarms:
             TmxText += "\t<tu tuid=\"" + NewAlarm + "\" />\n"
     TmxText += TmxLine
 TmxFile.close()
-TmxFile = open(TmxPath, "w")
+TmxFile = open(TmxPath,"w")
 TmxFile.write(TmxText)
 TmxFile.close()
 
 #TmxTree = et.parse(TmxPath)
 #TmxRoot = TmxTree.getroot()
 #TmxBody = TmxRoot.find(".//body")
-# print(TmxBody)
+#print(TmxBody)
 
 #####################################################################################################################################################
 # Update mpalarmxcore
@@ -146,7 +140,7 @@ if (ConfigPath.find("Logical") != -1):
         if (Physical.find("Physical") != -1):
             ConfigPath += "Physical"
             for Config in os.listdir(ConfigPath):
-                if not (Config.endswith(".pkg")):
+                if not(Config.endswith(".pkg")):
                     ConfigName.append(Config)
             break
 
@@ -209,103 +203,166 @@ Parent.append(MpAlarmList)
 MpAlarmTree.write(MpAlarmPath)
 
 #####################################################################################################################################################
-# Update alarms program TODO přidat datové typy Flag, udělat jazyk C
+# Update alarms program
 #####################################################################################################################################################
 
+# Constants
+LANGUAGE_C = 0
+LANGUAGE_ST = 1
+EXTENSIONS = [".c", ".st"]
 
-def AlarmSetReset(VariableSetText, VariableResetText, AlarmVariable):
-    VariableSetText += """
+# Function for alarms set/reset text generation
+def AlarmSetReset(VariableSetText, VariableResetText, AlarmVariable, ProgramLanguage):
+    if ProgramLanguage == LANGUAGE_C:
+        VariableSetText += """
+	if (""" + AlarmVariable + """ >  Flag.""" + AlarmVariable + """)
+	{
+		MpAlarmXSet(&gAlarmXCore, \"""" + AlarmVariable + """\");
+	}"""
+        VariableResetText += """
+	if (""" + AlarmVariable + """ <  Flag.""" + AlarmVariable + """)
+	{
+		MpAlarmXReset(&gAlarmXCore, \"""" + AlarmVariable + """\");
+	};"""
+    elif ProgramLanguage == LANGUAGE_ST:
+        VariableSetText += """
 	IF (""" + AlarmVariable + """ >  Flag.""" + AlarmVariable + """) THEN
 		MpAlarmXSet(gAlarmXCore, '""" + AlarmVariable + """');
 	END_IF;"""
-    VariableResetText += """
+        VariableResetText += """
 	IF (""" + AlarmVariable + """ <  Flag.""" + AlarmVariable + """) THEN
 		MpAlarmXReset(gAlarmXCore, '""" + AlarmVariable + """');
 	END_IF;"""
     return VariableSetText, VariableResetText
 
+# Detect programming language
+if (FindFilePath(LogicalPath, "Alarms" + EXTENSIONS[LANGUAGE_C], False) != ""):
+    ProgramLanguage = LANGUAGE_C
+else:
+    ProgramLanguage = LANGUAGE_ST
 
-LANGUAGE_C = 0
-LANGUAGE_ST = 1
-Extensions = [".c", ".st"]
-ProgramLanguage = LANGUAGE_ST
-if ProgramLanguage == LANGUAGE_ST:
-    ProgramPath = FindFilePath(LogicalPath,
-                               "Alarms" + Extensions[ProgramLanguage])
-    if IsFile(ProgramPath):
-        # Create whole automatically generated section and insert it to the file
-        ProgramFile = open(ProgramPath, "r")
-        ProgramText = ""
-        ErrorLastTaskName = ""
-        ProgramErrorSetText = "\t(************************************************************ Error set ************************************************************)"
-        ProgramErrorResetText = "\n\n\t(*********************************************************** Error reset ***********************************************************)"
-        WarningLastTaskName = ""
-        ProgramWarningSetText = "\n\n\t(*********************************************************** Warning set ***********************************************************)"
-        ProgramWarningResetText = "\n\n\t(********************************************************** Warning reset **********************************************************)"
-        InfoLastTaskName = ""
-        ProgramInfoSetText = "\n\n\t(************************************************************* Info set ************************************************************)"
-        ProgramInfoResetText = "\n\n\t(************************************************************ Info reset ***********************************************************)"
-        AutomaticSectionStartFound = False
+# Generate cyclic program
+ProgramPath = FindFilePath(LogicalPath, "Alarms" + EXTENSIONS[ProgramLanguage], True)
+
+# Create whole automatically generated cyclic section and insert it to the file
+ProgramFile = open(ProgramPath, "r")
+ProgramText = ""
+ErrorLastTaskName = ""
+WarningLastTaskName = ""
+InfoLastTaskName = ""
+AutomaticSectionStartFound = False
+InAutomaticSection = False
+
+if ProgramLanguage == LANGUAGE_C:
+    ProgramErrorSetText = "\t/************************************************************ Error set ************************************************************/"
+    ProgramErrorResetText = "\n\t\n\t/*********************************************************** Error reset ***********************************************************/"
+    ProgramWarningSetText = "\n\t\n\t/*********************************************************** Warning set ***********************************************************/"
+    ProgramWarningResetText = "\n\t\n\t/********************************************************** Warning reset **********************************************************/"
+    ProgramInfoSetText = "\n\t\n\t/************************************************************* Info set ************************************************************/"
+    ProgramInfoResetText = "\n\t\n\t/************************************************************ Info reset ***********************************************************/"
+    FlagsText = "\n\t\n\t/********************************************************** Flags handling *********************************************************/"
+elif ProgramLanguage == LANGUAGE_ST:
+    ProgramErrorSetText = "\t(************************************************************ Error set ************************************************************)"
+    ProgramErrorResetText = "\n\t\n\t(*********************************************************** Error reset ***********************************************************)"
+    ProgramWarningSetText = "\n\t\n\t(*********************************************************** Warning set ***********************************************************)"
+    ProgramWarningResetText = "\n\t\n\t(********************************************************** Warning reset **********************************************************)"
+    ProgramInfoSetText = "\n\t\n\t(************************************************************* Info set ************************************************************)"
+    ProgramInfoResetText = "\n\t\n\t(************************************************************ Info reset ***********************************************************)"
+    FlagsText = "\n\t\n\t(********************************************************** Flags handling *********************************************************)"
+
+for ProgramLine in ProgramFile:
+    if not InAutomaticSection:
+        ProgramText += ProgramLine
+    if (ProgramLine.find("// START OF AUTOMATIC CODE GENERATION //") != -1): # Automatic generation section start
+        AutomaticSectionStartFound = True
+        InAutomaticSection = True
+        for Alarm in Alarms:
+            AlarmVariable = "g" + Alarm["Task"] + "." + Alarm["Type"] + "." + Alarm["Name"]
+            if Alarm["Type"] == "Error":
+                if not(ErrorLastTaskName == Alarm["Task"]):
+                    ProgramErrorSetText += "\n\t\n\t// Task " + Alarm["Task"]
+                    ProgramErrorResetText += "\n\t\n\t// Task " + Alarm["Task"]
+                ProgramErrorSetText, ProgramErrorResetText = AlarmSetReset(ProgramErrorSetText, ProgramErrorResetText, AlarmVariable, ProgramLanguage)
+                ErrorLastTaskName = Alarm["Task"]
+            elif Alarm["Type"] == "Warning":
+                if not(WarningLastTaskName == Alarm["Task"]):
+                    ProgramWarningSetText += "\n\t\n\t// Task " + Alarm["Task"]
+                    ProgramWarningResetText += "\n\t\n\t// Task " + Alarm["Task"]
+                ProgramWarningSetText, ProgramWarningResetText = AlarmSetReset(ProgramWarningSetText, ProgramWarningResetText, AlarmVariable, ProgramLanguage)
+                WarningLastTaskName = Alarm["Task"]
+            elif Alarm["Type"] == "Info":
+                if not(InfoLastTaskName == Alarm["Task"]):
+                    ProgramInfoSetText += "\n\t\n\t// Task " + Alarm["Task"]
+                    ProgramInfoResetText += "\n\t\n\t// Task " + Alarm["Task"]
+                ProgramInfoSetText, ProgramInfoResetText = AlarmSetReset(ProgramInfoSetText, ProgramInfoResetText, AlarmVariable, ProgramLanguage)
+                InfoLastTaskName = Alarm["Task"]
+
+            if not "g" + Alarm["Task"] + "." + Alarm["Type"] in FlagsText:
+                if ProgramLanguage == LANGUAGE_C:
+                    FlagsText += "\n\tFlag.g" + Alarm["Task"] + "." + Alarm["Type"] + "\t= g" + Alarm["Task"] + "." + Alarm["Type"] + ";"
+                elif ProgramLanguage == LANGUAGE_ST:
+                    FlagsText += "\n\tFlag.g" + Alarm["Task"] + "." + Alarm["Type"] + "\t:= g" + Alarm["Task"] + "." + Alarm["Type"] + ";"
+
+        ProgramText += ProgramErrorSetText + ProgramErrorResetText + ProgramWarningSetText + ProgramWarningResetText + ProgramInfoSetText + ProgramInfoResetText + FlagsText
+
+    elif (ProgramLine.find("// END OF AUTOMATIC CODE GENERATION //") != -1): # Automatic generation section end
         InAutomaticSection = False
-        AutomaticSectionEndFound = False
-        for ProgramLine in ProgramFile:
-            if not InAutomaticSection:
-                ProgramText += ProgramLine
-            if (ProgramLine.find("// START OF AUTOMATIC CODE GENERATION //") !=
-                    -1):  # Automatic generation section start
-                AutomaticSectionStartFound = True
-                InAutomaticSection = True
-                for Alarm in Alarms:
-                    AlarmVariable = "g" + Alarm["Task"] + "." + Alarm[
-                        "Type"] + "." + Alarm["Name"]
-                    if Alarm["Type"] == "Error":
-                        if not (ErrorLastTaskName == Alarm["Task"]):
-                            ProgramErrorSetText += "\n\n\t// Task " + Alarm[
-                                "Task"]
-                            ProgramErrorResetText += "\n\n\t// Task " + Alarm[
-                                "Task"]
-                        ProgramErrorSetText, ProgramErrorResetText = AlarmSetReset(
-                            ProgramErrorSetText, ProgramErrorResetText,
-                            AlarmVariable)
-                        ErrorLastTaskName = Alarm["Task"]
-                    elif Alarm["Type"] == "Warning":
-                        if not (WarningLastTaskName == Alarm["Task"]):
-                            ProgramWarningSetText += "\n\n\t// Task " + Alarm[
-                                "Task"]
-                            ProgramWarningResetText += "\n\n\t// Task " + Alarm[
-                                "Task"]
-                        ProgramWarningSetText, ProgramWarningResetText = AlarmSetReset(
-                            ProgramWarningSetText, ProgramWarningResetText,
-                            AlarmVariable)
-                        WarningLastTaskName = Alarm["Task"]
-                    elif Alarm["Type"] == "Info":
-                        if not (InfoLastTaskName == Alarm["Task"]):
-                            ProgramInfoSetText += "\n\n\t// Task " + Alarm[
-                                "Task"]
-                            ProgramInfoResetText += "\n\n\t// Task " + Alarm[
-                                "Task"]
-                        ProgramInfoSetText, ProgramInfoResetText = AlarmSetReset(
-                            ProgramInfoSetText, ProgramInfoResetText,
-                            AlarmVariable)
-                        InfoLastTaskName = Alarm["Task"]
+        ProgramText += "\n\t\n" + ProgramLine
 
-                ProgramText += ProgramErrorSetText + ProgramErrorResetText + ProgramWarningSetText + \
-                    ProgramWarningResetText + ProgramInfoSetText + ProgramInfoResetText
+ProgramFile.close()
+if not AutomaticSectionStartFound:
+    sys.exit("Start of automatically generated section not found. Insert comment // START OF AUTOMATIC CODE GENERATION // to Alarms" + EXTENSIONS[ProgramLanguage] + ".")
+elif InAutomaticSection:
+    sys.exit("End of automatically generated section not found. Insert comment // END OF AUTOMATIC CODE GENERATION // to Alarms" + EXTENSIONS[ProgramLanguage] + ".")
+else:
+    ProgramFile = open(ProgramPath,"w")
+    ProgramFile.write(ProgramText)
+    ProgramFile.close()
+    
+# Check if Flag variable exists and create it if not
+AlarmsVarPath = FindFilePath(os.path.dirname(ProgramPath), "Alarms.var", True)
+AlarmsVarFile = open(AlarmsVarPath, "r")
+if not "Flag : FlagType;" in AlarmsVarFile.read():
+    AlarmsVarFile.close()
+    AlarmsVarFile = open(AlarmsVarPath, "a")
+    AlarmsVarFile.write("VAR\n\tFlag : FlagType;\nEND_VAR")
+AlarmsVarFile.close()
 
-            elif (ProgramLine.find("// END OF AUTOMATIC CODE GENERATION //") !=
-                  -1):  # Automatic generation section end
-                AutomaticSectionEndFound = True
-                InAutomaticSection = False
-                ProgramText += "\n\n" + ProgramLine
+# Generate Flag type
+AutomaticSectionStartFound = False
+InAutomaticSection = False
+AlarmsTypText = ""
+AuxiliaryText = ""
+AlarmsTypPath = FindFilePath(os.path.dirname(ProgramPath), "Alarms.typ", True)
+AlarmsTypFile = open(AlarmsTypPath, "r")
+for AlarmsTypLine in AlarmsTypFile:
+    if not InAutomaticSection:
+        AlarmsTypText += AlarmsTypLine
+    if (AlarmsTypLine.find("// START OF AUTOMATIC CODE GENERATION //") != -1): # Automatic generation section start
+        AlarmsTypText += "\nTYPE\n\tFlagType : STRUCT"
+        AutomaticSectionStartFound = True
+        InAutomaticSection = True
+        for Alarm in Alarms:
+            if not "g" + Alarm["Task"] in AlarmsTypText:
+                if AuxiliaryText != "":
+                    AuxiliaryText += "\n\tEND_STRUCT;\n\tg" + Alarm["Task"] + "FlagType : STRUCT"
+                else:
+                    AuxiliaryText = "\n\tg" + Alarm["Task"] + "FlagType : STRUCT"
+                AlarmsTypText += "\n\t\tg" + Alarm["Task"] + " : " + "g" + Alarm["Task"] + "FlagType;"
+            if not "g" + Alarm["Task"] + Alarm["Type"] + "Type" in AuxiliaryText:
+                AuxiliaryText += "\n\t\t" + Alarm["Type"] + " : g" + Alarm["Task"] + Alarm["Type"] + "Type;"
+        AlarmsTypText += "\n\tEND_STRUCT;" + AuxiliaryText + "\n\tEND_STRUCT;" + "\nEND_TYPE"
 
-        ProgramFile.close()
-        if not AutomaticSectionStartFound:
-            sys.exit("Start of automatically generated section in Alarms" +
-                     Extensions[ProgramLanguage] + " not found.")
-        elif not AutomaticSectionEndFound:
-            sys.exit("End of automatically generated section in Alarms" +
-                     Extensions[ProgramLanguage] + " not found.")
-        else:
-            ProgramFile = open(ProgramPath, "w")
-            ProgramFile.write(ProgramText)
-            ProgramFile.close()
+    elif (AlarmsTypLine.find("// END OF AUTOMATIC CODE GENERATION //") != -1): # Automatic generation section end
+        InAutomaticSection = False
+        AlarmsTypText += "\n\n" + AlarmsTypLine
+
+AlarmsTypFile.close()
+if not AutomaticSectionStartFound:
+    sys.exit("Start of automatically generated section not found. Insert comment // START OF AUTOMATIC CODE GENERATION // to Alarms.typ.")
+elif InAutomaticSection:
+    sys.exit("End of automatically generated section not found. Insert comment // END OF AUTOMATIC CODE GENERATION // to Alarms.typ.")
+else:
+    AlarmsTypFile = open(AlarmsTypPath,"w")
+    AlarmsTypFile.write(AlarmsTypText)
+    AlarmsTypFile.close()
