@@ -134,23 +134,16 @@ TmxFile.close()
 # Create path to mpalarmxcore
 ConfigName = []
 ConfigPath = os.path.dirname(os.path.abspath(__file__))
-if (ConfigPath.find("Logical") != -1):
-    ConfigPath = ConfigPath[:ConfigPath.find("Logical")]
-    for Physical in os.listdir(ConfigPath):
-        if (Physical.find("Physical") != -1):
-            ConfigPath += "Physical"
-            for Config in os.listdir(ConfigPath):
-                if not(Config.endswith(".pkg")):
-                    ConfigName.append(Config)
-            break
+ConfigPath = ConfigPath[:ConfigPath.find("Logical")]
+MpAlarmPath = FindFilePath(ConfigPath, "AlarmsCfg.mpalarmxcore", True)
 
-CpuPath = os.path.join(ConfigPath, ConfigName[0])
-for Cpu in os.listdir(CpuPath):
-    TmpPath = os.path.join(CpuPath, Cpu)
-    if os.path.isdir(os.path.join(CpuPath, Cpu)):
-        CpuPath = os.path.join(CpuPath, Cpu)
+# CpuPath = os.path.join(ConfigPath, ConfigName[0])
+# for Cpu in os.listdir(CpuPath):
+#     TmpPath = os.path.join(CpuPath, Cpu)
+#     if os.path.isdir(os.path.join(CpuPath, Cpu)):
+#         CpuPath = os.path.join(CpuPath, Cpu)
 
-MpAlarmPath = os.path.join(CpuPath, "mappServices", "Alarms.mpalarmxcore")
+# MpAlarmPath = os.path.join(CpuPath, "mappServices", "AlarmsCfg.mpalarmxcore")
 
 # Load file
 IsFile(MpAlarmPath)
@@ -168,8 +161,6 @@ for Group in Parent.findall(
 MpAlarmList = et.Element("Group", {"ID": "mapp.AlarmX.Core.Configuration"})
 
 # Insert new configuration
-
-
 def MpAlarmCreateNodes(Parent, Properties) -> et.Element:
     for Item in Properties:
         if Item.data:
@@ -181,7 +172,6 @@ def MpAlarmCreateNodes(Parent, Properties) -> et.Element:
             Parent.append(Element)
     return Parent
 
-
 def MpAlarmCreateGroup(Index: int, Alarm: dict) -> et.Element:
     Group = et.Element("Group", {"ID": "["+str(Index)+"]"})
     Name = "g"+Alarm["Task"]+"."+Alarm["Type"]+"."+Alarm["Name"]
@@ -191,7 +181,6 @@ def MpAlarmCreateGroup(Index: int, Alarm: dict) -> et.Element:
     Properties = CreateTreeFromProperties(Alarm["Properties"])
     MpAlarmCreateNodes(Group, Properties)
     return Group
-
 
 for Index, Alarm in enumerate(Alarms):
     Element = MpAlarmCreateGroup(Index, Alarm)
