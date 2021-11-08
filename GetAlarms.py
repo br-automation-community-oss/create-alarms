@@ -1,5 +1,4 @@
 import re
-from Tree import Node
 
 # Each key represents allowed alarm property, its value is XML element tag
 PROPERTIES = {"Code": "Property", "Severity": "Property", "Behavior": "Selector",
