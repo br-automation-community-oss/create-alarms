@@ -38,19 +38,19 @@ def FindFilePath(SourcePath, FileName, Terminate):
         for FileNam in [File for File in FileNames if File == FileName]:
             FilePath = (os.path.join(DirPath, FileNam))
     if FilePath == "" and Terminate:
-        sys.exit("File " + FileName + " does not exist.")
+        sys.exit("Error: File " + FileName + " does not exist.")
     return FilePath
 
 # Checks if file exists and terminates script if not
 def IsFile(FilePath):
     if not os.path.isfile(FilePath):
-        sys.exit("File " + os.path.basename(FilePath) + " does not exist.")
+        sys.exit("Error: File " + os.path.basename(FilePath) + " does not exist.")
     return True
 
 # Checks if directory exists and terminates script if not
 def IsDir(DirPath):
     if not os.path.isdir(DirPath):
-        sys.exit("Directory " + DirPath + " does not exist.")
+        sys.exit("Error: Directory " + DirPath + " does not exist.")
     return True
     
 # Insert new configuration
@@ -99,19 +99,19 @@ def AlarmSetReset(VariableSetText, VariableResetText, AlarmVariable, ProgramLang
 	END_IF;"""
     return VariableSetText, VariableResetText
 
-# Prebuild mode function
-def Prebuild():
-    # Ouput window message
-    print("----------------------------- Beginning of the script CreateAlarms -----------------------------")
+# Get path to Logical directory
+def GetLogicalPath():
+    LogicalPath = os.path.dirname(os.path.abspath(__file__))
+    if (LogicalPath.find("Logical") == -1):
+        sys.exit("Error: Directory 'Logical' does not exist.")
+    LogicalPath = LogicalPath[:LogicalPath.find("Logical") + 7]
+    return LogicalPath
 
+# Get alarms
+def GetTypAlarms(LogicalPath):
     #####################################################################################################################################################
     # Open Global.typ file
     #####################################################################################################################################################
-    LogicalPath = os.path.dirname(os.path.abspath(__file__))
-    if (LogicalPath.find("Logical") == -1):
-        sys.exit("Directory 'Logical' does not exist.")
-
-    LogicalPath = LogicalPath[:LogicalPath.find("Logical") + 7]
     TypPath = os.path.join(LogicalPath, "Global.typ")
     IsFile(TypPath)
 
@@ -122,15 +122,20 @@ def Prebuild():
     # Parse data from Global.typ file
     #####################################################################################################################################################
     Alarms = GetAlarms(TypContent)
+    return Alarms
 
+# Check properties validity
+def Validity():
     #####################################################################################################################################################
     # Validity of dependencies
     #####################################################################################################################################################
-
     # No validity of dependencies with basic properties
+    pass
 
+# Update TMX file
+def UpdateTmx(LogicalPath, Alarms):
     #####################################################################################################################################################
-    # Update TMX file
+    # Update Tmx file
     #####################################################################################################################################################
 
     # Ouput window message
@@ -188,11 +193,8 @@ def Prebuild():
     TmxFile.write(TmxText)
     TmxFile.close()
 
-    #TmxTree = et.parse(TmxPath)
-    #TmxRoot = TmxTree.getroot()
-    #TmxBody = TmxRoot.find(".//body")
-    #print(TmxBody)
-
+# Update mpalarmxcore file
+def UpdateMpalarmxcore(Alarms):
     #####################################################################################################################################################
     # Update mpalarmxcore
     #####################################################################################################################################################
@@ -238,6 +240,8 @@ def Prebuild():
     # Save file
     MpAlarmTree.write(MpAlarmPath)
 
+# Update program file
+def UpdateProgram(LogicalPath, Alarms):
     #####################################################################################################################################################
     # Update alarms program
     #####################################################################################################################################################
@@ -321,9 +325,9 @@ def Prebuild():
 
     ProgramFile.close()
     if not AutomaticSectionStartFound:
-        sys.exit("Start of automatically generated section not found. Insert comment // START OF AUTOMATIC CODE GENERATION // to Alarms" + EXTENSIONS[ProgramLanguage] + ".")
+        sys.exit("Error: Start of automatically generated section not found. Insert comment // START OF AUTOMATIC CODE GENERATION // to Alarms" + EXTENSIONS[ProgramLanguage] + ".")
     elif InAutomaticSection:
-        sys.exit("End of automatically generated section not found. Insert comment // END OF AUTOMATIC CODE GENERATION // to Alarms" + EXTENSIONS[ProgramLanguage] + ".")
+        sys.exit("Error: End of automatically generated section not found. Insert comment // END OF AUTOMATIC CODE GENERATION // to Alarms" + EXTENSIONS[ProgramLanguage] + ".")
     else:
         ProgramFile = open(ProgramPath,"w")
         ProgramFile.write(ProgramText)
@@ -369,17 +373,90 @@ def Prebuild():
 
     AlarmsTypFile.close()
     if not AutomaticSectionStartFound:
-        sys.exit("Start of automatically generated section not found. Insert comment // START OF AUTOMATIC CODE GENERATION // to Alarms.typ.")
+        sys.exit("Error: Start of automatically generated section not found. Insert comment // START OF AUTOMATIC CODE GENERATION // to Alarms.typ.")
     elif InAutomaticSection:
-        sys.exit("End of automatically generated section not found. Insert comment // END OF AUTOMATIC CODE GENERATION // to Alarms.typ.")
+        sys.exit("Error: End of automatically generated section not found. Insert comment // END OF AUTOMATIC CODE GENERATION // to Alarms.typ.")
     else:
         AlarmsTypFile = open(AlarmsTypPath,"w")
         AlarmsTypFile.write(AlarmsTypText)
         AlarmsTypFile.close()
 
+# GUI configuration accepted
+def AcceptConfiguration(Config):
+    UserData["Configuration"] = Config
+    with open(os.getenv("APPDATA") + "\\BR\\" + "CreateAlarmsSettings", "wb") as CreateAlarmsSettings:
+        pickle.dump(UserData, CreateAlarmsSettings)
+    sys.exit()
+
+# Separately update Tmx file
+def SepUpdateTmx():
+    # Get path to Logical directory
+    LogicalPath = GetLogicalPath()
+
+    # Get alarms from global types
+    Alarms = GetTypAlarms(LogicalPath)
+
+    # Check properties validity
+    Validity()
+
+    # Update Tmx file
+    UpdateTmx(LogicalPath, Alarms)
+
+# Separately update mpalarmxcore file
+def SepUpdateMpConfig():
+    # Get path to Logical directory
+    LogicalPath = GetLogicalPath()
+
+    # Get alarms from global types
+    Alarms = GetTypAlarms(LogicalPath)
+
+    # Check properties validity
+    Validity()
+
+    # Update mpalarmxcore file
+    UpdateMpalarmxcore(Alarms)
+
+# Separately update program file
+def SepUpdateProgram():
+    # Get path to Logical directory
+    LogicalPath = GetLogicalPath()
+
+    # Get alarms from global types
+    Alarms = GetTypAlarms(LogicalPath)
+
+    # Check properties validity
+    Validity()
+
+    # Update program file
+    UpdateProgram(LogicalPath, Alarms)
+
+# Prebuild mode function
+def Prebuild():
+    # Ouput window message
+    print("----------------------------- Beginning of the script CreateAlarms -----------------------------")
+
+    # Get path to Logical directory
+    LogicalPath = GetLogicalPath()
+
+    # Get alarms from global types
+    Alarms = GetTypAlarms(LogicalPath)
+
+    # Check properties validity
+    Validity()
+
+    # Update Tmx file
+    UpdateTmx(LogicalPath, Alarms)
+
+    # Update mpalarmxcore file
+    UpdateMpalarmxcore(Alarms)
+
+    # Update program file
+    UpdateProgram(LogicalPath, Alarms)
+    
     # Ouput window message
     print("--------------------------------- End of the script CreateAlarms ---------------------------------")
 
+# GUI mode function
 def GUI():
     # Load configurations name
     ConfigName = []
@@ -415,7 +492,7 @@ def GUI():
             background-color:#111111;
             color:#ccccdd;
             border:6;
-            padding-left:10px;
+            padding: 10px;
         }
 
         QCheckBox{
@@ -475,6 +552,7 @@ def GUI():
         QPushButton{
             background-color:#111111;
             border: none;
+            padding: 10px;
         }
 
         QPushButton:pressed{
@@ -525,13 +603,30 @@ def GUI():
     ConfigLabel.setToolTip("Select configuration with AlarmsCfg.mpalarmxcore file")
     Layout.addRow(ConfigLabel, ConfigComboBox)
 
-    RunScriptPushButton = QPushButton("Run script")
+    RunTmxPushButton = QPushButton("Update TMX")
+    RunTmxPushButton.setToolTip("Immidiately runs TMX update")
+    RunMpConfigPushButton = QPushButton("Update MpAlarmXCore")
+    RunMpConfigPushButton.setToolTip("Immidiately runs MpAlarmXCore update")
+    RunProgramPushButton = QPushButton("Update program")
+    RunProgramPushButton.setToolTip("Immidiately runs program Alarms update")
+    RunSeparatelyRow = QHBoxLayout()
+    RunSeparatelyRow.addSpacing(10)
+    RunSeparatelyRow.addWidget(RunTmxPushButton)
+    RunSeparatelyRow.addSpacing(20)
+    RunSeparatelyRow.addWidget(RunMpConfigPushButton)
+    RunSeparatelyRow.addSpacing(20)
+    RunSeparatelyRow.addWidget(RunProgramPushButton)
+    RunSeparatelyRow.addSpacing(10)
+    RunSeparatelyRow.addSpacerItem(QSpacerItem(0, 80))
+    Layout.addRow(RunSeparatelyRow)
+
+    RunScriptPushButton = QPushButton("Update all")
     RunScriptPushButton.setToolTip("Immidiately runs the script")
     RunScriptRow = QHBoxLayout()
     RunScriptRow.addSpacing(120)
     RunScriptRow.addWidget(RunScriptPushButton)
     RunScriptRow.addSpacing(120)
-    RunScriptRow.addSpacerItem(QSpacerItem(0, 80))
+    RunScriptRow.addSpacerItem(QSpacerItem(0, 40))
     Layout.addRow(RunScriptRow)
 
     # Creating a dialog button for ok and cancel
@@ -540,6 +635,9 @@ def GUI():
     # Adding actions for form
     FormButtonBox.accepted.connect(lambda: AcceptConfiguration(ConfigComboBox.currentText()))
     FormButtonBox.rejected.connect(Dialog.reject)
+    RunTmxPushButton.clicked.connect(SepUpdateTmx)
+    RunMpConfigPushButton.clicked.connect(SepUpdateMpConfig)
+    RunProgramPushButton.clicked.connect(SepUpdateProgram)
     RunScriptPushButton.clicked.connect(Prebuild)
     
     # Creating a vertical layout
@@ -558,26 +656,16 @@ def GUI():
     Dialog.show()
     Gui.exec()
 
-def AcceptConfiguration(Config):
-    UserData["Configuration"] = Config
-    with open(os.getenv("APPDATA") + "\\BR\\" + "CreateAlarmsSettings", "wb") as CreateAlarmsSettings:
-        pickle.dump(UserData, CreateAlarmsSettings)
-    sys.exit()
-
 #####################################################################################################################################################
 # Main
 #####################################################################################################################################################
 
 # Script mode decision
-try:
-    if sys.argv[1] == "-prebuild":
-        # Argument -prebuild found
-        RunMode = MODE_PREBUILD
-    else:
-        # Argument found, but it is not -prebuild
-        RunMode = MODE_GUI
-except IndexError:
-    # Without argument
+if "-prebuild" in sys.argv:
+    # Argument -prebuild found
+    RunMode = MODE_PREBUILD
+else:
+    # Argument -prebuild not found
     RunMode = MODE_GUI
 
 # Load user settings
@@ -587,9 +675,12 @@ try:
 except:
     UserData = {"Configuration":""}
 
+# Run respective script mode
 if RunMode == MODE_PREBUILD:
     Prebuild()
 elif RunMode == MODE_GUI:
     # TODO GUI:
     # Language selection ?
+    # Configuration selection for more projects {"Project":{"Name":"", "Configuration":""}}
+    # DEBUG buttons
     GUI()
