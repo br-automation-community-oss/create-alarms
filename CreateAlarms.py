@@ -469,19 +469,14 @@ def UpdateProgram(LogicalPath, Alarms):
         AlarmsTypFile.close()
 
 # GUI: Configuration accepted
-def AcceptConfiguration(Config, Debug, UpdateTmx, UpdateMpConfig, UpdateProgram):
+def AcceptConfiguration(Config, Debug):
     UserData["Configuration"] = Config
     UserData["Debug"] = Debug
     with open(UserDataPath, "wb") as CreateAlarmsSettings:
         pickle.dump(UserData, CreateAlarmsSettings)
-    
-    if UpdateTmx: SepUpdateTmx()
-    if UpdateMpConfig: SepUpdateMpConfig()
-    if UpdateProgram: SepUpdateProgram()
-
     sys.exit()
 
-# GUI: Separately update Tmx file
+# GUI: Separately update Tmx file (not used now)
 def SepUpdateTmx():
     # Get path to Logical directory
     LogicalPath = GetLogicalPath()
@@ -495,7 +490,7 @@ def SepUpdateTmx():
     # Update Tmx file
     UpdateTmx(LogicalPath, Alarms)
 
-# GUI: Separately update mpalarmxcore file
+# GUI: Separately update mpalarmxcore file (not used now)
 def SepUpdateMpConfig():
     # Get path to Logical directory
     LogicalPath = GetLogicalPath()
@@ -509,7 +504,7 @@ def SepUpdateMpConfig():
     # Update mpalarmxcore file
     UpdateMpalarmxcore(Alarms)
 
-# GUI: Separately update program file
+# GUI: Separately update program file (not used now)
 def SepUpdateProgram():
     # Get path to Logical directory
     LogicalPath = GetLogicalPath()
@@ -692,34 +687,33 @@ def GUI():
     DebugLabel.setToolTip("Turns on printing of debug messages")
     Layout.addRow(DebugLabel, DebugPushButton)
 
-    RunTmxPushButton = QPushButton("Update TMX")
-    RunTmxPushButton.setToolTip("Runs TMX update after dialog confirmation")
-    RunTmxPushButton.setFixedSize(140, 50)
-    RunTmxPushButton.setCheckable(True)
-    RunMpConfigPushButton = QPushButton("Update MpAlarmXCore")
-    RunMpConfigPushButton.setToolTip("Runs MpAlarmXCore update after dialog confirmation")
-    RunMpConfigPushButton.setFixedSize(240, 50)
-    RunMpConfigPushButton.setCheckable(True)
-    RunProgramPushButton = QPushButton("Update program")
-    RunProgramPushButton.setToolTip("Runs program Alarms update after dialog confirmation")
-    RunProgramPushButton.setFixedSize(180, 50)
-    RunProgramPushButton.setCheckable(True)
-    RunSeparatelyRow = QHBoxLayout()
-    RunSeparatelyRow.addSpacing(10)
-    RunSeparatelyRow.addWidget(RunTmxPushButton)
-    RunSeparatelyRow.addSpacing(20)
-    RunSeparatelyRow.addWidget(RunMpConfigPushButton)
-    RunSeparatelyRow.addSpacing(20)
-    RunSeparatelyRow.addWidget(RunProgramPushButton)
-    RunSeparatelyRow.addSpacing(10)
-    RunSeparatelyRow.addSpacerItem(QSpacerItem(0, 80))
-    Layout.addRow(RunSeparatelyRow)
+    # RunTmxPushButton = QPushButton("  TMX  ")
+    # RunTmxPushButton.setToolTip("Runs TMX update after dialog confirmation")
+    # RunTmxPushButton.setFixedHeight(50)
+    # RunTmxPushButton.setCheckable(True)
+    # RunMpConfigPushButton = QPushButton("  MpAlarmXCore  ")
+    # RunMpConfigPushButton.setToolTip("Runs MpAlarmXCore update after dialog confirmation")
+    # RunMpConfigPushButton.setFixedHeight(50)
+    # RunMpConfigPushButton.setCheckable(True)
+    # RunProgramPushButton = QPushButton("  Alarms program  ")
+    # RunProgramPushButton.setToolTip("Runs program Alarms update after dialog confirmation")
+    # RunProgramPushButton.setFixedHeight(50)
+    # RunProgramPushButton.setCheckable(True)
+    # RunSeparatelyRow = QHBoxLayout()
+    # RunSeparatelyRow.addWidget(RunTmxPushButton)
+    # RunSeparatelyRow.addSpacing(10)
+    # RunSeparatelyRow.addWidget(RunMpConfigPushButton)
+    # RunSeparatelyRow.addSpacing(10)
+    # RunSeparatelyRow.addWidget(RunProgramPushButton)
+    # UpdateLabel = QLabel("Update after confirmation")
+    # UpdateLabel.setToolTip("Updates selected parts after confirmation")
+    # Layout.addRow(UpdateLabel, RunSeparatelyRow)
     
     # Creating a dialog button for ok and cancel
     FormButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
     # Adding actions for form
-    FormButtonBox.accepted.connect(lambda: AcceptConfiguration(ConfigComboBox.currentText(), DebugPushButton.isChecked(), RunTmxPushButton.isChecked(), RunMpConfigPushButton.isChecked(), RunProgramPushButton.isChecked()))
+    FormButtonBox.accepted.connect(lambda: AcceptConfiguration(ConfigComboBox.currentText(), DebugPushButton.isChecked()))
     FormButtonBox.rejected.connect(Dialog.reject)
     
     # Creating a vertical layout
