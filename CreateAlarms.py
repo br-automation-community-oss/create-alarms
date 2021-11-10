@@ -380,7 +380,7 @@ def UpdateProgram(LogicalPath, Alarms):
 def AcceptConfiguration(Config, Debug):
     UserData["Configuration"] = Config
     UserData["Debug"] = Debug
-    with open(os.getenv("APPDATA") + "\\BR\\" + "CreateAlarmsSettings", "wb") as CreateAlarmsSettings:
+    with open(UserDataPath, "wb") as CreateAlarmsSettings:
         pickle.dump(UserData, CreateAlarmsSettings)
     sys.exit()
 
@@ -581,6 +581,7 @@ def GUI():
     ConfigComboBox = QComboBox()
     ConfigComboBox.addItems(ConfigName)
     ConfigComboBox.setToolTip("Select configuration with AlarmsCfg.mpalarmxcore file")
+    ConfigComboBox.setCurrentText(UserData["Configuration"])
     ConfigLabel = QLabel("Select configuration")
     ConfigLabel.setToolTip("Select configuration with AlarmsCfg.mpalarmxcore file")
     Layout.addRow(ConfigLabel, ConfigComboBox)
@@ -662,9 +663,18 @@ else:
     # Argument -prebuild not found
     RunMode = MODE_GUI
 
-# Load user settings
+# Get project name
+ProjectPath = GetLogicalPath()[:GetLogicalPath().find("Logical") - 1]
+ProjectName = os.path.basename(ProjectPath)
+
+# Get path to user data
+UserDataPath = os.path.join(os.getenv("APPDATA"), "BR", "CreateAlarms", ProjectName)
+if not os.path.isdir(os.path.join(os.getenv("APPDATA"), "BR", "CreateAlarms")):
+    os.makedirs(os.path.join(os.getenv("APPDATA"), "BR", "CreateAlarms"))
+
+# Load user data
 try:
-    with open(os.getenv("APPDATA") + "\\BR\\" + "CreateAlarmsSettings", "rb") as CreateAlarmsSettings:
+    with open(UserDataPath, "rb") as CreateAlarmsSettings:
         UserData = pickle.load(CreateAlarmsSettings)
 except:
     UserData = {"Configuration":"", "Debug": False}
@@ -680,5 +690,4 @@ if RunMode == MODE_PREBUILD:
 elif RunMode == MODE_GUI:
     # TODO GUI:
     # Language selection ?
-    # Configuration selection and debug for more projects {"Project":{"Name":"", "Configuration":""}}
     GUI()
