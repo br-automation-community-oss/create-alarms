@@ -8,8 +8,6 @@
 #####################################################################################################################################################
 import os, re, sys
 import xml.etree.ElementTree as et
-from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
 import pickle
 
@@ -73,19 +71,22 @@ def FindFilePath(SourcePath, FileName, Terminate):
         for FileNam in [File for File in FileNames if File == FileName]:
             FilePath = (os.path.join(DirPath, FileNam))
     if FilePath == "" and Terminate:
-        sys.exit("Error: File " + FileName + " does not exist.")
+        print("Error: File " + FileName + " does not exist.")
+        sys.exit()
     return FilePath
 
 # Checks if file exists and terminates script if not
 def IsFile(FilePath):
     if not os.path.isfile(FilePath):
-        sys.exit("Error: File " + os.path.basename(FilePath) + " does not exist.")
+        print("Error: File " + os.path.basename(FilePath) + " does not exist.")
+        sys.exit()
     return True
 
 # Checks if directory exists and terminates script if not
 def IsDir(DirPath):
     if not os.path.isdir(DirPath):
-        sys.exit("Error: Directory " + DirPath + " does not exist.")
+        print("Error: Directory " + DirPath + " does not exist.")
+        sys.exit()
     return True
     
 # Insert new configuration
@@ -138,7 +139,8 @@ def AlarmSetReset(VariableSetText, VariableResetText, AlarmVariable, ProgramLang
 def GetLogicalPath():
     LogicalPath = os.path.dirname(os.path.abspath(__file__))
     if (LogicalPath.find("Logical") == -1):
-        sys.exit("Error: Directory 'Logical' does not exist.")
+        print("Error: Directory 'Logical' does not exist.")
+        sys.exit()
     LogicalPath = LogicalPath[:LogicalPath.find("Logical") + 7]
     return LogicalPath
 
@@ -406,9 +408,11 @@ def UpdateProgram(LogicalPath, Alarms):
 
     ProgramFile.close()
     if not AutomaticSectionStartFound:
-        sys.exit("Error: Start of automatically generated section not found. Insert comment // START OF AUTOMATIC CODE GENERATION // to Alarms" + EXTENSIONS[ProgramLanguage] + ".")
+        print("Error: Start of automatically generated section not found. Insert comment // START OF AUTOMATIC CODE GENERATION // to Alarms" + EXTENSIONS[ProgramLanguage] + ".")
+        sys.exit()
     elif InAutomaticSection:
-        sys.exit("Error: End of automatically generated section not found. Insert comment // END OF AUTOMATIC CODE GENERATION // to Alarms" + EXTENSIONS[ProgramLanguage] + ".")
+        print("Error: End of automatically generated section not found. Insert comment // END OF AUTOMATIC CODE GENERATION // to Alarms" + EXTENSIONS[ProgramLanguage] + ".")
+        sys.exit()
     else:
         ProgramFile = open(ProgramPath,"w")
         ProgramFile.write(ProgramText)
@@ -454,9 +458,11 @@ def UpdateProgram(LogicalPath, Alarms):
 
     AlarmsTypFile.close()
     if not AutomaticSectionStartFound:
-        sys.exit("Error: Start of automatically generated section not found. Insert comment // START OF AUTOMATIC CODE GENERATION // to Alarms.typ.")
+        print("Error: Start of automatically generated section not found. Insert comment // START OF AUTOMATIC CODE GENERATION // to Alarms.typ.")
+        sys.exit()
     elif InAutomaticSection:
-        sys.exit("Error: End of automatically generated section not found. Insert comment // END OF AUTOMATIC CODE GENERATION // to Alarms.typ.")
+        print("Error: End of automatically generated section not found. Insert comment // END OF AUTOMATIC CODE GENERATION // to Alarms.typ.")
+        sys.exit()
     else:
         AlarmsTypFile = open(AlarmsTypPath,"w")
         AlarmsTypFile.write(AlarmsTypText)
