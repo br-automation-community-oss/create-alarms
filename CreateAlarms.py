@@ -21,8 +21,10 @@ LANGUAGE_ST = 1
 EXTENSIONS = [".c", ".st"]
 
 # Each key represents allowed alarm property, its value is XML element tag
-PROPERTIES = {"Code": "Property", "Severity": "Property", "Behavior": "Selector",
-              "Behavior.Retain": "Property", "Behavior.Asynchronous": "Property",
+PROPERTIES = {"AdditionalInformation1" : "Property", "AdditionalInformation2" : "Property",
+              "Code": "Property", "Disable" : "Property", "Severity": "Property", "Behavior": "Selector",
+              "Behavior.Retain": "Property", "Behavior.Async": "Property",
+              "Behavior.MultipleInstances": "Property", "Behavior.ReactionUntilAcknowledged": "Property",
               "Behavior.Monitoring": "Group", "Behavior.Monitoring.MonitoredPV": "Property",
               "Behavior.Monitoring.LowLimitEnable": "Selector", "Behavior.Monitoring.LowLimitEnable.Limit": "Property",
               "Behavior.Monitoring.HighLimitEnable": "Selector", "Behavior.Monitoring.HighLimitEnable.Limit": "Property"}
