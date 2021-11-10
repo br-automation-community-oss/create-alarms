@@ -377,11 +377,16 @@ def UpdateProgram(LogicalPath, Alarms):
         AlarmsTypFile.close()
 
 # GUI: Configuration accepted
-def AcceptConfiguration(Config, Debug):
+def AcceptConfiguration(Config, Debug, UpdateTmx, UpdateMpConfig, UpdateProgram):
     UserData["Configuration"] = Config
     UserData["Debug"] = Debug
     with open(UserDataPath, "wb") as CreateAlarmsSettings:
         pickle.dump(UserData, CreateAlarmsSettings)
+    
+    if UpdateTmx: SepUpdateTmx()
+    if UpdateMpConfig: SepUpdateMpConfig()
+    if UpdateProgram: SepUpdateProgram()
+
     sys.exit()
 
 # GUI: Separately update Tmx file
@@ -596,14 +601,17 @@ def GUI():
     Layout.addRow(DebugLabel, DebugPushButton)
 
     RunTmxPushButton = QPushButton("Update TMX")
-    RunTmxPushButton.setToolTip("Immidiately runs TMX update")
+    RunTmxPushButton.setToolTip("Runs TMX update after dialog confirmation")
     RunTmxPushButton.setFixedSize(140, 50)
+    RunTmxPushButton.setCheckable(True)
     RunMpConfigPushButton = QPushButton("Update MpAlarmXCore")
-    RunMpConfigPushButton.setToolTip("Immidiately runs MpAlarmXCore update")
+    RunMpConfigPushButton.setToolTip("Runs MpAlarmXCore update after dialog confirmation")
     RunMpConfigPushButton.setFixedSize(240, 50)
+    RunMpConfigPushButton.setCheckable(True)
     RunProgramPushButton = QPushButton("Update program")
-    RunProgramPushButton.setToolTip("Immidiately runs program Alarms update")
+    RunProgramPushButton.setToolTip("Runs program Alarms update after dialog confirmation")
     RunProgramPushButton.setFixedSize(180, 50)
+    RunProgramPushButton.setCheckable(True)
     RunSeparatelyRow = QHBoxLayout()
     RunSeparatelyRow.addSpacing(10)
     RunSeparatelyRow.addWidget(RunTmxPushButton)
@@ -614,26 +622,13 @@ def GUI():
     RunSeparatelyRow.addSpacing(10)
     RunSeparatelyRow.addSpacerItem(QSpacerItem(0, 80))
     Layout.addRow(RunSeparatelyRow)
-
-    RunScriptPushButton = QPushButton("Update all")
-    RunScriptPushButton.setToolTip("Immidiately runs the script")
-    RunScriptPushButton.setFixedHeight(50)
-    RunScriptRow = QHBoxLayout()
-    RunScriptRow.addSpacing(120)
-    RunScriptRow.addWidget(RunScriptPushButton)
-    RunScriptRow.addSpacing(120)
-    Layout.addRow(RunScriptRow)
-
+    
     # Creating a dialog button for ok and cancel
     FormButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
     # Adding actions for form
-    FormButtonBox.accepted.connect(lambda: AcceptConfiguration(ConfigComboBox.currentText(), DebugPushButton.isChecked()))
+    FormButtonBox.accepted.connect(lambda: AcceptConfiguration(ConfigComboBox.currentText(), DebugPushButton.isChecked(), RunTmxPushButton.isChecked(), RunMpConfigPushButton.isChecked(), RunProgramPushButton.isChecked()))
     FormButtonBox.rejected.connect(Dialog.reject)
-    RunTmxPushButton.clicked.connect(SepUpdateTmx)
-    RunMpConfigPushButton.clicked.connect(SepUpdateMpConfig)
-    RunProgramPushButton.clicked.connect(SepUpdateProgram)
-    RunScriptPushButton.clicked.connect(Prebuild)
     
     # Creating a vertical layout
     MainLayout = QVBoxLayout()
