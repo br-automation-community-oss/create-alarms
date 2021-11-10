@@ -506,8 +506,9 @@ def GUI():
         }
 
         QDialogButtonBox::StandardButton *{
-            background-color:#333333;
-            width:120px;
+            background-color: #222222;
+            width: 180px;
+            height: 50px;
         }
 
         QPushButton{
@@ -515,7 +516,6 @@ def GUI():
             background-color:#3d3d3d;
             color:#cccccc;
             border-radius:8px;
-            padding: 10px;
         }
 
         QPushButton:hover{
@@ -589,16 +589,20 @@ def GUI():
     DebugPushButton.setToolTip("Turns on printing of debug messages")
     DebugPushButton.setCheckable(True)
     DebugPushButton.setChecked(UserData["Debug"])
+    DebugPushButton.setFixedHeight(50)
     DebugLabel = QLabel("Turn on debugging")
     DebugLabel.setToolTip("Turns on printing of debug messages")
     Layout.addRow(DebugLabel, DebugPushButton)
 
     RunTmxPushButton = QPushButton("Update TMX")
     RunTmxPushButton.setToolTip("Immidiately runs TMX update")
+    RunTmxPushButton.setFixedSize(140, 50)
     RunMpConfigPushButton = QPushButton("Update MpAlarmXCore")
     RunMpConfigPushButton.setToolTip("Immidiately runs MpAlarmXCore update")
+    RunMpConfigPushButton.setFixedSize(240, 50)
     RunProgramPushButton = QPushButton("Update program")
     RunProgramPushButton.setToolTip("Immidiately runs program Alarms update")
+    RunProgramPushButton.setFixedSize(180, 50)
     RunSeparatelyRow = QHBoxLayout()
     RunSeparatelyRow.addSpacing(10)
     RunSeparatelyRow.addWidget(RunTmxPushButton)
@@ -612,6 +616,7 @@ def GUI():
 
     RunScriptPushButton = QPushButton("Update all")
     RunScriptPushButton.setToolTip("Immidiately runs the script")
+    RunScriptPushButton.setFixedHeight(50)
     RunScriptRow = QHBoxLayout()
     RunScriptRow.addSpacing(120)
     RunScriptRow.addWidget(RunScriptPushButton)
