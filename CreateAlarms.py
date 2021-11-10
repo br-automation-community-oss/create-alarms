@@ -655,7 +655,6 @@ def GUI():
     # Borderless window
     # Dialog.setWindowFlag(Qt.FramelessWindowHint)
     Dialog.setWindowTitle(" ")
-    CenterPoint = QDesktopWidget().availableGeometry().center()
     Dialog.setGeometry(0, 0, 500, 300)
 
     # Center window
@@ -710,14 +709,24 @@ def GUI():
     # UpdateLabel = QLabel("Update after confirmation")
     # UpdateLabel.setToolTip("Updates selected parts after confirmation")
     # Layout.addRow(UpdateLabel, RunSeparatelyRow)
-    
+
     # Creating a dialog button for ok and cancel
     FormButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+
+    # Version label
+    VersionLabel = QLabel("ⓘ v1.0.0", parent=FormButtonBox)
+    VersionLabel.move(0, 10)
+    VersionLabel.setStyleSheet("QLabel{font: 20px \"Bahnschrift SemiLight SemiConde\"; background-color: transparent;} QToolTip{background-color:#eedd22;}")
+    VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
+	
+Version 1.0.0:
+	- Script creation
+	- Basic functions implemented""")
 
     # Adding actions for form
     FormButtonBox.accepted.connect(lambda: AcceptConfiguration(ConfigComboBox.currentText(), DebugPushButton.isChecked()))
     FormButtonBox.rejected.connect(Dialog.reject)
-    
+
     # Creating a vertical layout
     MainLayout = QVBoxLayout()
 
