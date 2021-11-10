@@ -15,11 +15,6 @@ from PyQt5.QtWidgets import *
 import pickle
 
 #####################################################################################################################################################
-# Debug mode (debug print)
-#####################################################################################################################################################
-DEBUG = False
-
-#####################################################################################################################################################
 # Global constants
 #####################################################################################################################################################
 MODE_PREBUILD = 0
@@ -151,19 +146,19 @@ def UpdateTmx(LogicalPath, Alarms):
     for TmxItem in TmxRoot.findall(".//tu"):
         TmxAlarms.append(TmxItem.attrib["tuid"])
 
-    if DEBUG: print("Tmx alamrs: " + str(TmxAlarms))
+    if UserData["Debug"]: print("Tmx alamrs: " + str(TmxAlarms))
 
     # Get alarm names list from Global.typ file
     TypAlarms = []
     for Alarm in Alarms:
         TypAlarms.append("g" + Alarm["Task"] + "." + Alarm["Type"] + "." + Alarm["Name"])
 
-    if DEBUG: print("Typ alarms: " + str(TypAlarms))
+    if UserData["Debug"]: print("Typ alarms: " + str(TypAlarms))
 
     # Compare alarm names lists
     NewAlarms = list(set(TypAlarms) - set(TmxAlarms))
     MissingAlarms = list(set(TmxAlarms) - set(TypAlarms))
-    if DEBUG:
+    if UserData["Debug"]:
         print("New alarms are: " + str(NewAlarms))
         print("Missing alarms are: " + str(MissingAlarms))
 
@@ -381,14 +376,15 @@ def UpdateProgram(LogicalPath, Alarms):
         AlarmsTypFile.write(AlarmsTypText)
         AlarmsTypFile.close()
 
-# GUI configuration accepted
-def AcceptConfiguration(Config):
+# GUI: Configuration accepted
+def AcceptConfiguration(Config, Debug):
     UserData["Configuration"] = Config
+    UserData["Debug"] = Debug
     with open(os.getenv("APPDATA") + "\\BR\\" + "CreateAlarmsSettings", "wb") as CreateAlarmsSettings:
         pickle.dump(UserData, CreateAlarmsSettings)
     sys.exit()
 
-# Separately update Tmx file
+# GUI: Separately update Tmx file
 def SepUpdateTmx():
     # Get path to Logical directory
     LogicalPath = GetLogicalPath()
@@ -402,7 +398,7 @@ def SepUpdateTmx():
     # Update Tmx file
     UpdateTmx(LogicalPath, Alarms)
 
-# Separately update mpalarmxcore file
+# GUI: Separately update mpalarmxcore file
 def SepUpdateMpConfig():
     # Get path to Logical directory
     LogicalPath = GetLogicalPath()
@@ -416,7 +412,7 @@ def SepUpdateMpConfig():
     # Update mpalarmxcore file
     UpdateMpalarmxcore(Alarms)
 
-# Separately update program file
+# GUI: Separately update program file
 def SepUpdateProgram():
     # Get path to Logical directory
     LogicalPath = GetLogicalPath()
@@ -476,72 +472,37 @@ def GUI():
     Dialog = QDialog()
     Dialog.setStyleSheet("""
         QWidget{
-            background-color:#222222;
+            background-color:qlineargradient(spread:pad, x1:1, y1:0, x2:1, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(20, 20, 20, 255));
             color:#ccccdd;
             font: 24px \"Bahnschrift SemiLight SemiConde\";
         }
-
-        QLineEdit{
-            background-color:#111111;
-            color:#ccccdd;
-            border:6;
-            padding-left:10px;
+        
+        QLabel{
+            background-color:transparent;
+            color:#888888;
         }
 
         QComboBox{
-            background-color:#111111;
-            color:#ccccdd;
-            border:6;
+            background-color: #3d3d3d;
+            color: #cccccc;
+            border: none;
+            border-radius: 8px;
             padding: 10px;
+            position: center;
         }
 
-        QCheckBox{
-            border-style:none;
+        QComboBox:hover{
+            color:#cccccc;
+            background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(55, 55, 55, 255), stop:0.505682 rgba(55, 55, 55, 255), stop:1 rgba(40, 40, 40, 255));
         }
 
-        QCheckBox::indicator{
-            top:2px;
-            width:30px;
-            height:30px;
-            background-color:#111111;
-            color:#ff0000;
+        QComboBox::drop-down {
+            background-color: transparent;
         }
 
-        QCheckBox::indicator:hover{
-            background-color:#333333;
-        }
-
-        QCheckBox::indicator:checked{
-            background-color:limegreen;
-        }
-
-        QCheckBox::indicator:disabled{
-            background-color:#303030;
-        }
-
-        QRadioButton{
-            border-style:none;
-        }
-
-        QRadioButton::indicator{
-            top:2px;
-            width:24px;
-            height:24px;
-            border-radius:12px;
-            background-color:#111111;
-            color:#ff0000;
-        }
-
-        QRadioButton::indicator:hover{
-            background-color:#333333;
-        }
-
-        QRadioButton::indicator:checked{
-            background-color:limegreen;
-        }
-
-        QRadioButton::indicator:disabled{
-            background-color:#303030;
+        QComboBox QAbstractItemView {
+            color: #cccccc;
+            background-color: #3d3d3d;
         }
 
         QDialogButtonBox::StandardButton *{
@@ -550,21 +511,26 @@ def GUI():
         }
 
         QPushButton{
-            background-color:#111111;
-            border: none;
+            border-style:solid;
+            background-color:#3d3d3d;
+            color:#cccccc;
+            border-radius:8px;
             padding: 10px;
         }
 
+        QPushButton:hover{
+            color:#cccccc;
+            background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(55, 55, 55, 255), stop:0.505682 rgba(55, 55, 55, 255), stop:1 rgba(40, 40, 40, 255));
+        }
+
         QPushButton:pressed{
-            background-color:limegreen;
-            color:#111111;
-            border: none;
+            background-color:qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(45, 45, 45, 255), stop:0.505682 rgba(40, 40, 40, 255), stop:1 rgba(45, 45, 45, 255));
+            color:#ffffff;
         }
 
         QPushButton:checked{
-            background-color:limegreen;
-            color:#111111;
-            border: none;
+            background-color:qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #095209, stop:1 #0e780e);
+            color:#ffffff;
         }
 
         QToolTip{
@@ -572,6 +538,22 @@ def GUI():
             background-color:#eedd22;
             color:#111111;
             border: solid black 1px;
+        }
+
+        QGroupBox{
+            border-left: 2px solid;
+            border-right: 2px solid;
+            border-bottom: 2px solid;
+            border-color: #362412;
+            margin-top: 38px;
+            border-radius: 0px;
+        }
+
+        QGroupBox::title{
+            subcontrol-origin: margin;
+            subcontrol-position: top center;
+            padding: 5px 8000px;
+            background-color: #362412;
         }
         """
         )
@@ -596,12 +578,20 @@ def GUI():
     Layout.setHorizontalSpacing(20)
 
     # Adding widgets
-    ConfigComboBox = QComboBox(parent=FormGroupBox)
+    ConfigComboBox = QComboBox()
     ConfigComboBox.addItems(ConfigName)
     ConfigComboBox.setToolTip("Select configuration with AlarmsCfg.mpalarmxcore file")
     ConfigLabel = QLabel("Select configuration")
     ConfigLabel.setToolTip("Select configuration with AlarmsCfg.mpalarmxcore file")
     Layout.addRow(ConfigLabel, ConfigComboBox)
+
+    DebugPushButton = QPushButton("DEBUG")
+    DebugPushButton.setToolTip("Turns on printing of debug messages")
+    DebugPushButton.setCheckable(True)
+    DebugPushButton.setChecked(UserData["Debug"])
+    DebugLabel = QLabel("Turn on debugging")
+    DebugLabel.setToolTip("Turns on printing of debug messages")
+    Layout.addRow(DebugLabel, DebugPushButton)
 
     RunTmxPushButton = QPushButton("Update TMX")
     RunTmxPushButton.setToolTip("Immidiately runs TMX update")
@@ -626,14 +616,13 @@ def GUI():
     RunScriptRow.addSpacing(120)
     RunScriptRow.addWidget(RunScriptPushButton)
     RunScriptRow.addSpacing(120)
-    RunScriptRow.addSpacerItem(QSpacerItem(0, 40))
     Layout.addRow(RunScriptRow)
 
     # Creating a dialog button for ok and cancel
     FormButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
     # Adding actions for form
-    FormButtonBox.accepted.connect(lambda: AcceptConfiguration(ConfigComboBox.currentText()))
+    FormButtonBox.accepted.connect(lambda: AcceptConfiguration(ConfigComboBox.currentText(), DebugPushButton.isChecked()))
     FormButtonBox.rejected.connect(Dialog.reject)
     RunTmxPushButton.clicked.connect(SepUpdateTmx)
     RunMpConfigPushButton.clicked.connect(SepUpdateMpConfig)
@@ -673,7 +662,12 @@ try:
     with open(os.getenv("APPDATA") + "\\BR\\" + "CreateAlarmsSettings", "rb") as CreateAlarmsSettings:
         UserData = pickle.load(CreateAlarmsSettings)
 except:
-    UserData = {"Configuration":""}
+    UserData = {"Configuration":"", "Debug": False}
+
+if (len(UserData) != 2):
+    UserData = {"Configuration":"", "Debug": False}
+
+if UserData["Debug"]: print(UserData)
 
 # Run respective script mode
 if RunMode == MODE_PREBUILD:
@@ -681,6 +675,5 @@ if RunMode == MODE_PREBUILD:
 elif RunMode == MODE_GUI:
     # TODO GUI:
     # Language selection ?
-    # Configuration selection for more projects {"Project":{"Name":"", "Configuration":""}}
-    # DEBUG buttons
+    # Configuration selection and debug for more projects {"Project":{"Name":"", "Configuration":""}}
     GUI()
