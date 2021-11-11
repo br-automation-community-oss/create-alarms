@@ -21,31 +21,31 @@ LANGUAGE_ST = 1
 EXTENSIONS = [".c", ".st"]
 
 # Each key represents allowed alarm property, its value is XML element tag
-PROPERTIES = {"AdditionalInformation1": {"Tag": "Property", "ID": "AdditionalInformation1"}, 
-              "AdditionalInformation2": {"Tag": "Property", "ID": "AdditionalInformation2"}, 
-              "Code": {"Tag": "Property", "ID": "Code"}, 
-              "Disable": {"Tag": "Property", "ID": "Disable"}, 
-              "Severity": {"Tag": "Property", "ID": "Severity"}, 
+PROPERTIES = {"Code": {"Tag": "Property", "ID": "Code"},
+              "Severity": {"Tag": "Property", "ID": "Severity"},
               "Behavior": {"Tag": "Selector", "ID": "Behavior"},
-              "Behavior.Retain": {"Tag": "Property", "ID": "Retain"}, 
-              "Behavior.Asynchronous": {"Tag": "Property", "ID": "Async"},
-              "Behavior.MultipleInstances": {"Tag": "Property", "ID": "MultipleInstances"}, 
+              "Behavior.MultipleInstances": {"Tag": "Property", "ID": "MultipleInstances"},
               "Behavior.ReactionUntilAcknowledged": {"Tag": "Property", "ID": "ReactionUntilAcknowledged"},
-              "Behavior.Monitoring": {"Tag": "Group", "ID": "Monitoring"}, 
+              "Behavior.Retain": {"Tag": "Property", "ID": "Retain"},
+              "Behavior.Asynchronous": {"Tag": "Property", "ID": "Async"},
+              "Behavior.Monitoring": {"Tag": "Group", "ID": "Monitoring"},
               "Behavior.Monitoring.MonitoredPV": {"Tag": "Property", "ID": "MonitoredPV"},
-              "Behavior.Monitoring.LowLimit": {"Tag": "Selector", "ID": "LowLimitEnable"}, 
+              "Behavior.Monitoring.LowLimit": {"Tag": "Selector", "ID": "LowLimitEnable"},
               "Behavior.Monitoring.LowLimit.Limit": {"Tag": "Property", "ID": "Limit"},
-              "Behavior.Monitoring.LowLimit.LimitPV": {"Tag": "Property", "ID": "LimitPV"}, 
+              "Behavior.Monitoring.LowLimit.LimitPV": {"Tag": "Property", "ID": "LimitPV"},
               "Behavior.Monitoring.LowLimit.LimitText": {"Tag": "Property", "ID": "LimitText"},
-              "Behavior.Monitoring.HighLimit": {"Tag": "Selector", "ID": "HighLimitEnable"}, 
+              "Behavior.Monitoring.HighLimit": {"Tag": "Selector", "ID": "HighLimitEnable"},
               "Behavior.Monitoring.HighLimit.Limit": {"Tag": "Property", "ID": "Limit"},
-              "Behavior.Monitoring.HighLimit.LimitPV": {"Tag": "Property", "ID": "LimitPV"}, 
+              "Behavior.Monitoring.HighLimit.LimitPV": {"Tag": "Property", "ID": "LimitPV"},
               "Behavior.Monitoring.HighLimit.LimitText": {"Tag": "Property", "ID": "LimitText"},
-              "Behavior.Monitoring.Settings": {"Tag": "Selector", "ID": "Settings"}, 
+              "Behavior.Monitoring.Settings": {"Tag": "Selector", "ID": "Settings"},
               "Behavior.Monitoring.Settings.Delay": {"Tag": "Property", "ID": "Delay"},
-              "Behavior.Monitoring.Settings.Hysteresis": {"Tag": "Selector", "ID": "Hysteresis"}, 
+              "Behavior.Monitoring.Settings.Hysteresis": {"Tag": "Selector", "ID": "Hysteresis"},
               "Behavior.Monitoring.Settings.DelayPV": {"Tag": "Property", "ID": "DelayPV"},
-              "Behavior.Monitoring.Settings.HysteresisPV": {"Tag": "Property", "ID": "HysteresisPV"}}
+              "Behavior.Monitoring.Settings.HysteresisPV": {"Tag": "Property", "ID": "HysteresisPV"},
+              "Disable": {"Tag": "Property", "ID": "Disable"},
+              "AdditionalInformation1": {"Tag": "Property", "ID": "AdditionalInformation1"},
+              "AdditionalInformation2": {"Tag": "Property", "ID": "AdditionalInformation2"}}
 
 # Matches structure definition, returns three groups:
 # 1. Name of the structure
@@ -746,6 +746,7 @@ def GUI():
 	\nVersion 1.0.1:
 	- Bug with default alarm behavior fixed
 	- Behavior.Monitoring.MonitoredPV bug fixed
+	- Tags are taken from the graphics editor
 	\nVersion 1.0.0:
 	- Script creation
 	- Basic functions implemented""")

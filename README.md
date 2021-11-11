@@ -29,13 +29,11 @@ How does the script work?
 6. Alarms.tmx must has namespace "Alarms"
 7. In the configuration selected in the script configuration, there must be AlarmsCfg.mpalarmxcore file
 8. Alarms in Global.typ have to meet this requirements
-    a) Each task has its alarms
-    b) Alarms are divided into Error, Warning and Info groups (task does not have to have all of these groups)
-    c) Data type must has gTaskNameAlarmType namespace
-        (i.e. gMotionCtrlErrorType, gMotionCtrlWarningType, gMotionCtrlInfoType)
-    d) Alarms have to be BOOL types
-    e) Properties of alarms must be written into the Description[2] column and separated by semicolon or comma
-        (supported properties see below)
+- Each task has its alarms
+- Alarms are divided into Error, Warning and Info groups (task does not have to have all of these groups)
+- Data type must has gTaskNameAlarmType namespace (i.e. gMotionCtrlErrorType, gMotionCtrlWarningType, gMotionCtrlInfoType)
+- Alarms have to be BOOL types
+- Properties of alarms must be written into the Description[2] column and separated by semicolon or comma (supported properties see below)
             
 ## List of supported properties
 
@@ -45,25 +43,40 @@ Values are used to create Alarm List configuration in mpalarmxcore file.
 
 Properties Name and Message are generated automatically.
 
-| Supported properties               |                            |
-|------------------------------------|----------------------------|
-| __Key__                            | __Value__                  |
-| Code                               | unsigned integer           |
-| Severity                           | unsigned integer           |
-| Behavior                           | EdgeAlarm, PersistentAlarm |
-| Behavior.Retain                    | FALSE, TRUE                |
-| Behavior.Async                     | FALSE, TRUE                |
-| Behavior.MultipleInstances         | FALSE, TRUE                |
-| Behavior.ReactionUntilAcknowledged | FALSE, TRUE                |
-| Disable                            | FALSE, TRUE                |
-| AdditionalInformation1             | string                     |
-| AdditionalInformation2             | string                     |
+| Supported properties                      |                                             |
+|-------------------------------------------|---------------------------------------------|
+| __Key__                                   | __Value__                                   |
+| Code                                      | unsigned integer                            |
+| Severity                                  | unsigned integer                            |
+| Behavior                                  | EdgeAlarm, PersistentAlarm, LevelMonitoring |
+| Behavior.MultipleInstances                | FALSE, TRUE                                 |
+| Behavior.ReactionUntilAcknowledged        | FALSE, TRUE                                 |
+| Behavior.Retain                           | FALSE, TRUE                                 |
+| Behavior.Asynchronous                     | FALSE, TRUE                                 |
+| Behavior.Monitoring.MonitoredPV           | PV reference                                |
+| Behavior.Monitoring.LowLimit              | Disabled, Static, Dynamic                   |
+| Behavior.Monitoring.LowLimit.Limit        | float                                       |
+| Behavior.Monitoring.LowLimit.LimitPV      | PV reference                                |
+| Behavior.Monitoring.LowLimit.LimitText    | string                                      |
+| Behavior.Monitoring.HighLimit             | Disabled, Static, Dynamic                   |
+| Behavior.Monitoring.HighLimit.Limit       | float                                       |
+| Behavior.Monitoring.HighLimit.LimitPV     | PV reference                                |
+| Behavior.Monitoring.HighLimit.LimitText   | string                                      |
+| Behavior.Monitoring.Settings              | Static, Dynamic                             |
+| Behavior.Monitoring.Settings.Delay        | float                                       |
+| Behavior.Monitoring.Settings.Hysteresis   | float                                       |
+| Behavior.Monitoring.Settings.DelayPV      | PV reference                                |
+| Behavior.Monitoring.Settings.HysteresisPV | PV reference                                |
+| Disable                                   | FALSE, TRUE                                 |
+| AdditionalInformation1                    | string                                      |
+| AdditionalInformation2                    | string                                      |
 
 ## Version info
 
 __Version 1.0.1:__
 - Bug with default alarm behavior fixed
 - Behavior.Monitoring.MonitoredPV bug fixed
+- Tags are taken from the graphics editor
 	
 __Version 1.0.0:__
 
