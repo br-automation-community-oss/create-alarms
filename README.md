@@ -77,6 +77,7 @@ __Version 1.0.1:__
 - Bug with default alarm behavior fixed
 - Behavior.Monitoring.MonitoredPV bug fixed
 - Tags are taken from the graphics editor
+- Monitoring alarm types have no longer Set and Reset in the Alarms program
 	
 __Version 1.0.0:__
 
