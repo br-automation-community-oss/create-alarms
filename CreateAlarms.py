@@ -1,7 +1,7 @@
 #   Copyright:  B&R Industrial Automation
 #   Authors:    Adam Sefranek, Michal Vavrik
 #   Created:	Oct 26, 2021 1:36 PM
-#   Version:	1.0.0
+#   Version:	1.0.1
 
 #####################################################################################################################################################
 # Dependencies
@@ -721,10 +721,14 @@ def GUI():
     FormButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
     # Version label
-    VersionLabel = QLabel("ⓘ v1.0.0", parent=FormButtonBox)
+    VersionLabel = QLabel("ⓘ v1.0.1", parent=FormButtonBox)
     VersionLabel.move(0, 10)
     VersionLabel.setStyleSheet("QLabel{font: 20px \"Bahnschrift SemiLight SemiConde\"; background-color: transparent;} QToolTip{background-color:#eedd22;}")
-    VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.\n\t\nVersion 1.0.0:
+    VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
+	\nVersion 1.0.1:
+	- Bug with default alarm behavior fixed
+	- Behavior.Monitoring.MonitoredPV bug fixed
+	\nVersion 1.0.0:
 	- Script creation
 	- Basic functions implemented""")
 
