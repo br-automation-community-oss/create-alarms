@@ -57,8 +57,9 @@ class Node(object):
     def __iter__(self):
         return iter(self.children)
 
-    def append(self, obj):
+    def append(self, obj) -> object:
         self.children.append(obj)
+        return obj
 
     def find(self, key):
         return next(iter([node for node in self.children if node.key == key]), None)
@@ -96,7 +97,7 @@ def MpAlarmCreateNodes(Parent, Properties) -> et.Element:
     for Item in Properties:
         if Item.data:
             Attrib = {"ID": Item.key}
-            if Item.data["Value"]:
+            if "Value" in Item.data:
                 Attrib["Value"] = Item.data["Value"]
             Element = et.Element(Item.data["Tag"], Attrib)
             MpAlarmCreateNodes(Element, Item)
@@ -283,7 +284,11 @@ def CreateTreeFromProperties(Properties: list) -> Node:
             if Child:
                 Parent = Child
             else:
-                Parent.append(Node(Key))
+                if len(Keys) > 1:
+                    PropertyName = ".".join(Keys[0:Index+1])
+                else:
+                    PropertyName = Key
+                Parent = Parent.append(Node(Key, {"Tag": PROPERTIES[PropertyName]}))
         Parent.append(Node(Last, Item))
     return Tree
 
