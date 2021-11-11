@@ -399,31 +399,37 @@ def UpdateProgram(LogicalPath, Alarms):
             AutomaticSectionStartFound = True
             InAutomaticSection = True
             for Alarm in Alarms:
-                AlarmVariable = "g" + Alarm["Task"] + "." + Alarm["Type"] + "." + Alarm["Name"]
-                if Alarm["Type"] == "Error":
-                    if not(ErrorLastTaskName == Alarm["Task"]):
-                        ProgramErrorSetText += "\n\t\n\t// Task " + Alarm["Task"]
-                        ProgramErrorResetText += "\n\t\n\t// Task " + Alarm["Task"]
-                    ProgramErrorSetText, ProgramErrorResetText = AlarmSetReset(ProgramErrorSetText, ProgramErrorResetText, AlarmVariable, ProgramLanguage)
-                    ErrorLastTaskName = Alarm["Task"]
-                elif Alarm["Type"] == "Warning":
-                    if not(WarningLastTaskName == Alarm["Task"]):
-                        ProgramWarningSetText += "\n\t\n\t// Task " + Alarm["Task"]
-                        ProgramWarningResetText += "\n\t\n\t// Task " + Alarm["Task"]
-                    ProgramWarningSetText, ProgramWarningResetText = AlarmSetReset(ProgramWarningSetText, ProgramWarningResetText, AlarmVariable, ProgramLanguage)
-                    WarningLastTaskName = Alarm["Task"]
-                elif Alarm["Type"] == "Info":
-                    if not(InfoLastTaskName == Alarm["Task"]):
-                        ProgramInfoSetText += "\n\t\n\t// Task " + Alarm["Task"]
-                        ProgramInfoResetText += "\n\t\n\t// Task " + Alarm["Task"]
-                    ProgramInfoSetText, ProgramInfoResetText = AlarmSetReset(ProgramInfoSetText, ProgramInfoResetText, AlarmVariable, ProgramLanguage)
-                    InfoLastTaskName = Alarm["Task"]
+                MonitoringType = False
+                for Property in Alarm["Properties"]:
+                    if Property["Key"] == "Behavior" and "Monitoring" in Property["Value"]:
+                        MonitoringType = True
+                        break
+                if not MonitoringType:
+                    AlarmVariable = "g" + Alarm["Task"] + "." + Alarm["Type"] + "." + Alarm["Name"]
+                    if Alarm["Type"] == "Error":
+                        if not(ErrorLastTaskName == Alarm["Task"]):
+                            ProgramErrorSetText += "\n\t\n\t// Task " + Alarm["Task"]
+                            ProgramErrorResetText += "\n\t\n\t// Task " + Alarm["Task"]
+                        ProgramErrorSetText, ProgramErrorResetText = AlarmSetReset(ProgramErrorSetText, ProgramErrorResetText, AlarmVariable, ProgramLanguage)
+                        ErrorLastTaskName = Alarm["Task"]
+                    elif Alarm["Type"] == "Warning":
+                        if not(WarningLastTaskName == Alarm["Task"]):
+                            ProgramWarningSetText += "\n\t\n\t// Task " + Alarm["Task"]
+                            ProgramWarningResetText += "\n\t\n\t// Task " + Alarm["Task"]
+                        ProgramWarningSetText, ProgramWarningResetText = AlarmSetReset(ProgramWarningSetText, ProgramWarningResetText, AlarmVariable, ProgramLanguage)
+                        WarningLastTaskName = Alarm["Task"]
+                    elif Alarm["Type"] == "Info":
+                        if not(InfoLastTaskName == Alarm["Task"]):
+                            ProgramInfoSetText += "\n\t\n\t// Task " + Alarm["Task"]
+                            ProgramInfoResetText += "\n\t\n\t// Task " + Alarm["Task"]
+                        ProgramInfoSetText, ProgramInfoResetText = AlarmSetReset(ProgramInfoSetText, ProgramInfoResetText, AlarmVariable, ProgramLanguage)
+                        InfoLastTaskName = Alarm["Task"]
 
-                if not "g" + Alarm["Task"] + "." + Alarm["Type"] in FlagsText:
-                    if ProgramLanguage == LANGUAGE_C:
-                        FlagsText += "\n\tFlag.g" + Alarm["Task"] + "." + Alarm["Type"] + "\t= g" + Alarm["Task"] + "." + Alarm["Type"] + ";"
-                    elif ProgramLanguage == LANGUAGE_ST:
-                        FlagsText += "\n\tFlag.g" + Alarm["Task"] + "." + Alarm["Type"] + "\t:= g" + Alarm["Task"] + "." + Alarm["Type"] + ";"
+                    if not "g" + Alarm["Task"] + "." + Alarm["Type"] in FlagsText:
+                        if ProgramLanguage == LANGUAGE_C:
+                            FlagsText += "\n\tFlag.g" + Alarm["Task"] + "." + Alarm["Type"] + "\t= g" + Alarm["Task"] + "." + Alarm["Type"] + ";"
+                        elif ProgramLanguage == LANGUAGE_ST:
+                            FlagsText += "\n\tFlag.g" + Alarm["Task"] + "." + Alarm["Type"] + "\t:= g" + Alarm["Task"] + "." + Alarm["Type"] + ";"
 
             ProgramText += ProgramErrorSetText + ProgramErrorResetText + ProgramWarningSetText + ProgramWarningResetText + ProgramInfoSetText + ProgramInfoResetText + FlagsText
 
@@ -449,7 +455,7 @@ def UpdateProgram(LogicalPath, Alarms):
     if not "Flag : FlagType;" in AlarmsVarFile.read():
         AlarmsVarFile.close()
         AlarmsVarFile = open(AlarmsVarPath, "a")
-        AlarmsVarFile.write("VAR\n\tFlag : FlagType;\nEND_VAR")
+        AlarmsVarFile.write("\nVAR\n\tFlag : FlagType;\nEND_VAR")
     AlarmsVarFile.close()
 
     # Generate Flag type
@@ -747,6 +753,7 @@ def GUI():
 	- Bug with default alarm behavior fixed
 	- Behavior.Monitoring.MonitoredPV bug fixed
 	- Tags are taken from the graphics editor
+	- Monitoring alarm types have no longer Set and Reset in the Alarms program
 	\nVersion 1.0.0:
 	- Script creation
 	- Basic functions implemented""")
