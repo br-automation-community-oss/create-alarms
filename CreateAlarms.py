@@ -525,6 +525,8 @@ def Prebuild():
     # Ouput window message
     print("----------------------------- Beginning of the script CreateAlarms -----------------------------")
 
+    if UserData["Debug"]: print(UserData)
+
     # Get path to Logical directory
     LogicalPath = GetLogicalPath()
 
@@ -717,9 +719,7 @@ def GUI():
     VersionLabel = QLabel("ⓘ v1.0.0", parent=FormButtonBox)
     VersionLabel.move(0, 10)
     VersionLabel.setStyleSheet("QLabel{font: 20px \"Bahnschrift SemiLight SemiConde\"; background-color: transparent;} QToolTip{background-color:#eedd22;}")
-    VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
-	
-Version 1.0.0:
+    VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.\n\t\nVersion 1.0.0:
 	- Script creation
 	- Basic functions implemented""")
 
@@ -774,12 +774,10 @@ except:
 if (len(UserData) != 2):
     UserData = {"Configuration":"", "Debug": False}
 
-if UserData["Debug"]: print(UserData)
-
 # Run respective script mode
 if RunMode == MODE_PREBUILD:
     Prebuild()
 elif RunMode == MODE_GUI:
     # TODO GUI:
-    # Language selection ?
+    # Text translation
     GUI()
