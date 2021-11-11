@@ -21,13 +21,31 @@ LANGUAGE_ST = 1
 EXTENSIONS = [".c", ".st"]
 
 # Each key represents allowed alarm property, its value is XML element tag
-PROPERTIES = {"AdditionalInformation1" : "Property", "AdditionalInformation2" : "Property",
-              "Code": "Property", "Disable" : "Property", "Severity": "Property", "Behavior": "Selector",
-              "Behavior.Retain": "Property", "Behavior.Async": "Property",
-              "Behavior.MultipleInstances": "Property", "Behavior.ReactionUntilAcknowledged": "Property",
-              "Behavior.Monitoring": "Group", "Behavior.Monitoring.MonitoredPV": "Property",
-              "Behavior.Monitoring.LowLimitEnable": "Selector", "Behavior.Monitoring.LowLimitEnable.Limit": "Property",
-              "Behavior.Monitoring.HighLimitEnable": "Selector", "Behavior.Monitoring.HighLimitEnable.Limit": "Property"}
+PROPERTIES = {"AdditionalInformation1": {"Tag": "Property", "ID": "AdditionalInformation1"}, 
+              "AdditionalInformation2": {"Tag": "Property", "ID": "AdditionalInformation2"}, 
+              "Code": {"Tag": "Property", "ID": "Code"}, 
+              "Disable": {"Tag": "Property", "ID": "Disable"}, 
+              "Severity": {"Tag": "Property", "ID": "Severity"}, 
+              "Behavior": {"Tag": "Selector", "ID": "Behavior"},
+              "Behavior.Retain": {"Tag": "Property", "ID": "Retain"}, 
+              "Behavior.Asynchronous": {"Tag": "Property", "ID": "Async"},
+              "Behavior.MultipleInstances": {"Tag": "Property", "ID": "MultipleInstances"}, 
+              "Behavior.ReactionUntilAcknowledged": {"Tag": "Property", "ID": "ReactionUntilAcknowledged"},
+              "Behavior.Monitoring": {"Tag": "Group", "ID": "Monitoring"}, 
+              "Behavior.Monitoring.MonitoredPV": {"Tag": "Property", "ID": "MonitoredPV"},
+              "Behavior.Monitoring.LowLimit": {"Tag": "Selector", "ID": "LowLimitEnable"}, 
+              "Behavior.Monitoring.LowLimit.Limit": {"Tag": "Property", "ID": "Limit"},
+              "Behavior.Monitoring.LowLimit.LimitPV": {"Tag": "Property", "ID": "LimitPV"}, 
+              "Behavior.Monitoring.LowLimit.LimitText": {"Tag": "Property", "ID": "LimitText"},
+              "Behavior.Monitoring.HighLimit": {"Tag": "Selector", "ID": "HighLimitEnable"}, 
+              "Behavior.Monitoring.HighLimit.Limit": {"Tag": "Property", "ID": "Limit"},
+              "Behavior.Monitoring.HighLimit.LimitPV": {"Tag": "Property", "ID": "LimitPV"}, 
+              "Behavior.Monitoring.HighLimit.LimitText": {"Tag": "Property", "ID": "LimitText"},
+              "Behavior.Monitoring.Settings": {"Tag": "Selector", "ID": "Settings"}, 
+              "Behavior.Monitoring.Settings.Delay": {"Tag": "Property", "ID": "Delay"},
+              "Behavior.Monitoring.Settings.Hysteresis": {"Tag": "Selector", "ID": "Hysteresis"}, 
+              "Behavior.Monitoring.Settings.DelayPV": {"Tag": "Property", "ID": "DelayPV"},
+              "Behavior.Monitoring.Settings.HysteresisPV": {"Tag": "Property", "ID": "HysteresisPV"}}
 
 # Matches structure definition, returns three groups:
 # 1. Name of the structure
@@ -96,7 +114,7 @@ def IsDir(DirPath):
 def MpAlarmCreateNodes(Parent, Properties) -> et.Element:
     for Item in Properties:
         if Item.data:
-            Attrib = {"ID": Item.key}
+            Attrib = {"ID": Item.data["ID"]}
             if "Value" in Item.data:
                 Attrib["Value"] = Item.data["Value"]
             Element = et.Element(Item.data["Tag"], Attrib)
@@ -262,7 +280,7 @@ def GetAlarms(Input: str) -> list:
             for Pair in Pairs:
                 if Pair[0] in PROPERTIES:
                     Properties.append(
-                        {"Key": Pair[0], "Value": Pair[1], "Valid": True, "Tag": PROPERTIES[Pair[0]]})
+                        {"Key": Pair[0], "Value": Pair[1], "Valid": True, "Tag": PROPERTIES[Pair[0]]["Tag"], "ID": PROPERTIES[Pair[0]]["ID"]})
                 else:
                     print("Warning: Key '"+Pair[0]+"' of member 'g"+Structure[0] +
                           Structure[1]+"Type."+Member[0]+"' is not valid.")
@@ -288,7 +306,7 @@ def CreateTreeFromProperties(Properties: list) -> Node:
                     PropertyName = ".".join(Keys[0:Index+1])
                 else:
                     PropertyName = Key
-                Parent = Parent.append(Node(Key, {"Tag": PROPERTIES[PropertyName]}))
+                Parent = Parent.append(Node(Key, PROPERTIES[PropertyName]))
         Parent.append(Node(Last, Item))
     return Tree
 
