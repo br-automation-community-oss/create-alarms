@@ -61,6 +61,10 @@ Properties Name and Message are generated automatically.
 
 ## Version info
 
+Version 1.0.1:
+- Bug with default alarm behavior fixed
+- Behavior.Monitoring.MonitoredPV bug fixed
+	
 Version 1.0.0:
 
 - Script creation
