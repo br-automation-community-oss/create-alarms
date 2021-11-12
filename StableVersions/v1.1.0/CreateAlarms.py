@@ -787,7 +787,7 @@ def LogicalNotFoundMessage():
     Dialog.move(Rectangle.topLeft())
 
     # Creating a group box
-    ErrorLabel = QLabel("Directory Logical not found. Please copy this script to the LogicalView of your project.", parent=Dialog)
+    ErrorLabel = QLabel("Directory Logical not found. Please copy this script to your project to LogicalView.", parent=Dialog)
     ErrorLabel.setGeometry(0, 0, 500, 120)
     ErrorLabel.setWordWrap(True)
     ErrorLabel.setAlignment(QtCore.Qt.AlignTop)
