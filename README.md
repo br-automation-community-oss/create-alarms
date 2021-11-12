@@ -17,7 +17,7 @@ How does the script work?
 
 ## Implementation to your project
 
-__Note: The CreateAlarms script is fully compatible with the AddTask script. When adding an Alarms control task using AddTask, points 4.-6 are met. In addition, adding other task types using AddTask supports rules for the structure and namespace of global data types for this script.__
+__Note: The CreateAlarms script is fully compatible with the AddTask script. When adding an Alarms control task using AddTask, points 4.-6. are met and can be skipped. In addition, adding other task types using AddTask supports rules for the structure and namespace of global data types for this script.__
 1. Add the CreateAlarms.py script to the LogicalView in your project (can also be in subfolders)
 2. Add script to prebuild events with "-prebuild" argument
     $(AS_PROJECT_PATH)/Logical/Scripts/CreateAlarms.py -prebuild
