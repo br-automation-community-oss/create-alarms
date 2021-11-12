@@ -17,6 +17,7 @@ How does the script work?
 
 ## Implementation to your project
 
+__Note: The CreateAlarms script is fully compatible with the AddTask script. When adding an Alarms control task using AddTask, points 4.-6 are met. In addition, adding other task types using AddTask supports rules for the structure and namespace of global data types for this script.__
 1. Add the CreateAlarms.py script to the LogicalView in your project (can also be in subfolders)
 2. Add script to prebuild events with "-prebuild" argument
     $(AS_PROJECT_PATH)/Logical/Scripts/CreateAlarms.py -prebuild
@@ -78,6 +79,7 @@ __Version 1.0.1:__
 - Behavior.Monitoring.MonitoredPV bug fixed
 - Tags are taken from the graphics editor
 - Monitoring alarm types have no longer Set and Reset in the Alarms program
+- Path to user data changed to AppData\Roaming\BR\Scripts\CreateAlarms\
 	
 __Version 1.0.0:__
 

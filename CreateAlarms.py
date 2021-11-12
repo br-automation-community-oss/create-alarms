@@ -795,9 +795,9 @@ ProjectPath = GetLogicalPath()[:GetLogicalPath().find("Logical") - 1]
 ProjectName = os.path.basename(ProjectPath)
 
 # Get path to user data
-UserDataPath = os.path.join(os.getenv("APPDATA"), "BR", "CreateAlarms", ProjectName)
-if not os.path.isdir(os.path.join(os.getenv("APPDATA"), "BR", "CreateAlarms")):
-    os.makedirs(os.path.join(os.getenv("APPDATA"), "BR", "CreateAlarms"))
+UserDataPath = os.path.join(os.getenv("APPDATA"), "BR", "Scripts", "CreateAlarms", ProjectName)
+if not os.path.isdir(os.path.dirname(UserDataPath)):
+    os.makedirs(os.path.dirname(UserDataPath))
 
 # Load user data
 try:
