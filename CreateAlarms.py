@@ -1,13 +1,14 @@
 #   Copyright:  B&R Industrial Automation
 #   Authors:    Adam Sefranek, Michal Vavrik
 #   Created:	Oct 26, 2021 1:36 PM
-#   Version:	1.0.1
+#   Version:	1.1.0
 
 #####################################################################################################################################################
 # Dependencies
 #####################################################################################################################################################
 import os, re, sys
 import xml.etree.ElementTree as et
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
 import pickle
 
@@ -15,7 +16,8 @@ import pickle
 # Global constants
 #####################################################################################################################################################
 MODE_PREBUILD = 0
-MODE_GUI = 1
+MODE_CONFIGURATION = 1
+MODE_ERROR = 2
 LANGUAGE_C = 0
 LANGUAGE_ST = 1
 EXTENSIONS = [".c", ".st"]
@@ -161,12 +163,13 @@ def GetLogicalPath():
     LogicalPath = os.path.dirname(os.path.abspath(__file__))
     if (LogicalPath.find("Logical") == -1):
         print("Error: Directory 'Logical' does not exist.")
-        sys.exit()
-    LogicalPath = LogicalPath[:LogicalPath.find("Logical") + 7]
+        LogicalPath = ""
+    else:
+        LogicalPath = LogicalPath[:LogicalPath.find("Logical") + 7]
     return LogicalPath
 
 # Get alarms
-def GetTypAlarms(LogicalPath):
+def GetTypAlarms():
     #####################################################################################################################################################
     # Open Global.typ file
     #####################################################################################################################################################
@@ -191,7 +194,7 @@ def Validity():
     pass
 
 # Update TMX file
-def UpdateTmx(LogicalPath, Alarms):
+def UpdateTmx():
     #####################################################################################################################################################
     # Update Tmx file
     #####################################################################################################################################################
@@ -311,7 +314,7 @@ def CreateTreeFromProperties(Properties: list) -> Node:
     return Tree
 
 # Update mpalarmxcore file
-def UpdateMpalarmxcore(Alarms):
+def UpdateMpalarmxcore():
     #####################################################################################################################################################
     # Update mpalarmxcore
     #####################################################################################################################################################
@@ -349,7 +352,7 @@ def UpdateMpalarmxcore(Alarms):
     MpAlarmTree.write(MpAlarmPath)
 
 # Update program file
-def UpdateProgram(LogicalPath, Alarms):
+def UpdateProgram():
     #####################################################################################################################################################
     # Update alarms program
     #####################################################################################################################################################
@@ -499,7 +502,7 @@ def UpdateProgram(LogicalPath, Alarms):
         AlarmsTypFile.write(AlarmsTypText)
         AlarmsTypFile.close()
 
-# GUI: Configuration accepted
+# Configuration: Configuration accepted
 def AcceptConfiguration(Config, Debug):
     UserData["Configuration"] = Config
     UserData["Debug"] = Debug
@@ -507,47 +510,32 @@ def AcceptConfiguration(Config, Debug):
         pickle.dump(UserData, CreateAlarmsSettings)
     sys.exit()
 
-# GUI: Separately update Tmx file (not used now)
+# Configuration: Separately update Tmx file (not used now)
 def SepUpdateTmx():
-    # Get path to Logical directory
-    LogicalPath = GetLogicalPath()
-
-    # Get alarms from global types
-    Alarms = GetTypAlarms(LogicalPath)
 
     # Check properties validity
     Validity()
 
     # Update Tmx file
-    UpdateTmx(LogicalPath, Alarms)
+    UpdateTmx()
 
-# GUI: Separately update mpalarmxcore file (not used now)
+# Configuration: Separately update mpalarmxcore file (not used now)
 def SepUpdateMpConfig():
-    # Get path to Logical directory
-    LogicalPath = GetLogicalPath()
-
-    # Get alarms from global types
-    Alarms = GetTypAlarms(LogicalPath)
 
     # Check properties validity
     Validity()
 
     # Update mpalarmxcore file
-    UpdateMpalarmxcore(Alarms)
+    UpdateMpalarmxcore()
 
-# GUI: Separately update program file (not used now)
+# Configuration: Separately update program file (not used now)
 def SepUpdateProgram():
-    # Get path to Logical directory
-    LogicalPath = GetLogicalPath()
-
-    # Get alarms from global types
-    Alarms = GetTypAlarms(LogicalPath)
 
     # Check properties validity
     Validity()
 
     # Update program file
-    UpdateProgram(LogicalPath, Alarms)
+    UpdateProgram()
 
 # Prebuild mode function
 def Prebuild():
@@ -556,29 +544,23 @@ def Prebuild():
 
     if UserData["Debug"]: print(UserData)
 
-    # Get path to Logical directory
-    LogicalPath = GetLogicalPath()
-
-    # Get alarms from global types
-    Alarms = GetTypAlarms(LogicalPath)
-
     # Check properties validity
     Validity()
 
     # Update Tmx file
-    UpdateTmx(LogicalPath, Alarms)
+    UpdateTmx()
 
     # Update mpalarmxcore file
-    UpdateMpalarmxcore(Alarms)
+    UpdateMpalarmxcore()
 
     # Update program file
-    UpdateProgram(LogicalPath, Alarms)
+    UpdateProgram()
     
     # Ouput window message
     print("--------------------------------- End of the script CreateAlarms ---------------------------------")
 
-# GUI mode function
-def GUI():
+# Configuration mode function
+def Configuration():
     # Load configurations name
     ConfigName = []
     ConfigPath = os.path.dirname(os.path.abspath(__file__))
@@ -683,8 +665,7 @@ def GUI():
         """
         )
 
-    # Borderless window
-    # Dialog.setWindowFlag(Qt.FramelessWindowHint)
+    # Dialog.setWindowFlag(Qt.FramelessWindowHint) # Borderless window
     Dialog.setWindowTitle(" ")
     Dialog.setGeometry(0, 0, 500, 300)
 
@@ -749,11 +730,13 @@ def GUI():
     VersionLabel.move(0, 10)
     VersionLabel.setStyleSheet("QLabel{font: 20px \"Bahnschrift SemiLight SemiConde\"; background-color: transparent;} QToolTip{background-color:#eedd22;}")
     VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
-	\nVersion 1.0.1:
+	\nVersion 1.1.0:
 	- Bug with default alarm behavior fixed
 	- Behavior.Monitoring.MonitoredPV bug fixed
 	- Tags are taken from the graphics editor
 	- Monitoring alarm types have no longer Set and Reset in the Alarms program
+	- Path to user data changed to AppData\Roaming\BR\Scripts\CreateAlarms\\
+	- Error mode added
 	\nVersion 1.0.0:
 	- Script creation
 	- Basic functions implemented""")
@@ -778,41 +761,89 @@ def GUI():
     Dialog.show()
     Gui.exec()
 
+def LogicalNotFoundMessage():
+    # Create dialog gui
+    Gui = QApplication([])
+    Dialog = QDialog()
+    Dialog.setStyleSheet("""
+        QWidget{
+            background-color:qlineargradient(spread:pad, x1:1, y1:0, x2:1, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(20, 20, 20, 255));
+            color:#ccccdd;
+            font: 24px \"Bahnschrift SemiLight SemiConde\";
+        }
+        
+        QLabel{
+            background-color:transparent;
+            color:#bb2222;
+            padding: 10px;
+        }""")
+    Dialog.setWindowTitle("Error")
+    Dialog.setGeometry(0, 0, 500, 120)
+
+    # Center window
+    Rectangle = Dialog.frameGeometry()
+    CenterPoint = QDesktopWidget().availableGeometry().center()
+    Rectangle.moveCenter(CenterPoint)
+    Dialog.move(Rectangle.topLeft())
+
+    # Creating a group box
+    ErrorLabel = QLabel("Directory Logical not found. Please copy this script to your project to LogicalView.", parent=Dialog)
+    ErrorLabel.setGeometry(0, 0, 500, 120)
+    ErrorLabel.setWordWrap(True)
+    ErrorLabel.setAlignment(QtCore.Qt.AlignTop)
+    
+    # Show dialog
+    Dialog.show()
+    Gui.exec()
+
 #####################################################################################################################################################
 # Main
 #####################################################################################################################################################
 
+# Get path to Logical directory
+LogicalPath = GetLogicalPath()
+
 # Script mode decision
-if "-prebuild" in sys.argv:
+if LogicalPath == "":
+    # Logical path not found
+    RunMode = MODE_ERROR
+
+elif "-prebuild" in sys.argv:
     # Argument -prebuild found
     RunMode = MODE_PREBUILD
+
+    # Get alarms from global types
+    Alarms = GetTypAlarms()
+
 else:
     # Argument -prebuild not found
-    RunMode = MODE_GUI
+    RunMode = MODE_CONFIGURATION
 
-# Get project name
-ProjectPath = GetLogicalPath()[:GetLogicalPath().find("Logical") - 1]
-ProjectName = os.path.basename(ProjectPath)
+if not RunMode == MODE_ERROR:
+    # Get project name
+    ProjectPath = LogicalPath[:LogicalPath.find("Logical") - 1]
+    ProjectName = os.path.basename(ProjectPath)
 
-# Get path to user data
-UserDataPath = os.path.join(os.getenv("APPDATA"), "BR", "Scripts", "CreateAlarms", ProjectName)
-if not os.path.isdir(os.path.dirname(UserDataPath)):
-    os.makedirs(os.path.dirname(UserDataPath))
+    # Get path to user data
+    UserDataPath = os.path.join(os.getenv("APPDATA"), "BR", "Scripts", "CreateAlarms", ProjectName)
+    if not os.path.isdir(os.path.dirname(UserDataPath)):
+        os.makedirs(os.path.dirname(UserDataPath))
 
-# Load user data
-try:
-    with open(UserDataPath, "rb") as CreateAlarmsSettings:
-        UserData = pickle.load(CreateAlarmsSettings)
-except:
-    UserData = {"Configuration":"", "Debug": False}
+    # Load user data
+    try:
+        with open(UserDataPath, "rb") as CreateAlarmsSettings:
+            UserData = pickle.load(CreateAlarmsSettings)
+    except:
+        UserData = {"Configuration":"", "Debug": False}
 
-if (len(UserData) != 2):
-    UserData = {"Configuration":"", "Debug": False}
+    if (len(UserData) != 2):
+        UserData = {"Configuration":"", "Debug": False}
 
 # Run respective script mode
 if RunMode == MODE_PREBUILD:
     Prebuild()
-elif RunMode == MODE_GUI:
-    # TODO GUI:
-    # Text translation
-    GUI()
+elif RunMode == MODE_CONFIGURATION:
+    # TODO Configuration:
+    Configuration()
+elif RunMode == MODE_ERROR:
+    LogicalNotFoundMessage()

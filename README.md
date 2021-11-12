@@ -74,12 +74,13 @@ Properties Name and Message are generated automatically.
 
 ## Version info
 
-__Version 1.0.1:__
+__Version 1.1.0:__
 - Bug with default alarm behavior fixed
 - Behavior.Monitoring.MonitoredPV bug fixed
 - Tags are taken from the graphics editor
 - Monitoring alarm types have no longer Set and Reset in the Alarms program
 - Path to user data changed to AppData\Roaming\BR\Scripts\CreateAlarms\
+- Error mode added
 	
 __Version 1.0.0:__
 
