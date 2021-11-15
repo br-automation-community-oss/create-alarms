@@ -1,7 +1,7 @@
 #   Copyright:  B&R Industrial Automation
 #   Authors:    Adam Sefranek, Michal Vavrik
 #   Created:	Oct 26, 2021 1:36 PM
-#   Version:	1.1.0
+#   Version:	1.2.0
 
 #####################################################################################################################################################
 # Dependencies
@@ -178,7 +178,7 @@ def GetTypAlarms():
 
     with open(TypPath, "r") as f:
         TypContent = f.read()
-
+    
     #####################################################################################################################################################
     # Parse data from Global.typ file
     #####################################################################################################################################################
@@ -200,10 +200,10 @@ def UpdateTmx():
     #####################################################################################################################################################
 
     # Ouput window message
-    print("Updating TMX file...")
+    print("Updating " + UserData["TmxName"] + ".tmx file...")
 
     # Get alarm names list from TMX file
-    TmxPath = FindFilePath(LogicalPath, "Alarms.tmx", True)
+    TmxPath = FindFilePath(LogicalPath, UserData["TmxName"] + ".tmx", True)
 
     TmxTree = et.parse(TmxPath)
     TmxRoot = TmxTree.getroot()
@@ -320,13 +320,13 @@ def UpdateMpalarmxcore():
     #####################################################################################################################################################
 
     # Ouput window message
-    print("Updating AlarmsCfg.mpalarmxcore file...")
+    print("Updating " + UserData["MpConfigName"] + ".mpalarmxcore file...")
 
     # Create path to mpalarmxcore
     ConfigDir = os.path.dirname(os.path.abspath(__file__))
     ConfigDir = ConfigDir[:ConfigDir.find("Logical")]
     ConfigDir = os.path.join(ConfigDir, "Physical", UserData["Configuration"])
-    MpAlarmPath = FindFilePath(ConfigDir, "AlarmsCfg.mpalarmxcore", True)
+    MpAlarmPath = FindFilePath(ConfigDir, UserData["MpConfigName"] + ".mpalarmxcore", True)
     # Load file
     IsFile(MpAlarmPath)
 
@@ -357,17 +357,17 @@ def UpdateProgram():
     # Update alarms program
     #####################################################################################################################################################
 
-    # Ouput window message
-    print("Updating Alarms program...")
-
     # Detect programming language
-    if (FindFilePath(LogicalPath, "Alarms" + EXTENSIONS[LANGUAGE_C], False) != ""):
+    if (FindFilePath(LogicalPath, UserData["ProgramName"] + EXTENSIONS[LANGUAGE_C], False) != ""):
         ProgramLanguage = LANGUAGE_C
     else:
         ProgramLanguage = LANGUAGE_ST
+    
+    # Ouput window message
+    print("Updating " + UserData["ProgramName"] + EXTENSIONS[ProgramLanguage] + " file...")
 
     # Generate cyclic program
-    ProgramPath = FindFilePath(LogicalPath, "Alarms" + EXTENSIONS[ProgramLanguage], True)
+    ProgramPath = FindFilePath(LogicalPath, UserData["ProgramName"] + EXTENSIONS[ProgramLanguage], True)
 
     # Create whole automatically generated cyclic section and insert it to the file
     ProgramFile = open(ProgramPath, "r")
@@ -453,7 +453,7 @@ def UpdateProgram():
         ProgramFile.close()
         
     # Check if Flag variable exists and create it if not
-    AlarmsVarPath = FindFilePath(os.path.dirname(ProgramPath), "Alarms.var", True)
+    AlarmsVarPath = FindFilePath(os.path.dirname(ProgramPath), UserData["ProgramName"] + ".var", True)
     AlarmsVarFile = open(AlarmsVarPath, "r")
     if not "Flag : FlagType;" in AlarmsVarFile.read():
         AlarmsVarFile.close()
@@ -466,7 +466,7 @@ def UpdateProgram():
     InAutomaticSection = False
     AlarmsTypText = ""
     AuxiliaryText = ""
-    AlarmsTypPath = FindFilePath(os.path.dirname(ProgramPath), "Alarms.typ", True)
+    AlarmsTypPath = FindFilePath(os.path.dirname(ProgramPath), UserData["ProgramName"] + ".typ", True)
     AlarmsTypFile = open(AlarmsTypPath, "r")
     for AlarmsTypLine in AlarmsTypFile:
         if not InAutomaticSection:
@@ -502,41 +502,6 @@ def UpdateProgram():
         AlarmsTypFile.write(AlarmsTypText)
         AlarmsTypFile.close()
 
-# Configuration: Configuration accepted
-def AcceptConfiguration(Config, Debug):
-    UserData["Configuration"] = Config
-    UserData["Debug"] = Debug
-    with open(UserDataPath, "wb") as CreateAlarmsSettings:
-        pickle.dump(UserData, CreateAlarmsSettings)
-    sys.exit()
-
-# Configuration: Separately update Tmx file (not used now)
-def SepUpdateTmx():
-
-    # Check properties validity
-    Validity()
-
-    # Update Tmx file
-    UpdateTmx()
-
-# Configuration: Separately update mpalarmxcore file (not used now)
-def SepUpdateMpConfig():
-
-    # Check properties validity
-    Validity()
-
-    # Update mpalarmxcore file
-    UpdateMpalarmxcore()
-
-# Configuration: Separately update program file (not used now)
-def SepUpdateProgram():
-
-    # Check properties validity
-    Validity()
-
-    # Update program file
-    UpdateProgram()
-
 # Prebuild mode function
 def Prebuild():
     # Ouput window message
@@ -544,20 +509,33 @@ def Prebuild():
 
     if UserData["Debug"]: print(UserData)
 
-    # Check properties validity
-    Validity()
-
     # Update Tmx file
-    UpdateTmx()
+    if UserData["UpdateTmx"]: UpdateTmx()
 
     # Update mpalarmxcore file
-    UpdateMpalarmxcore()
+    if UserData["UpdateMpConfig"]: UpdateMpalarmxcore()
 
     # Update program file
-    UpdateProgram()
+    if UserData["UpdateProgram"]: UpdateProgram()
     
     # Ouput window message
     print("--------------------------------- End of the script CreateAlarms ---------------------------------")
+
+# Configuration: Configuration accepted
+def AcceptConfiguration(Config, Debug, UpdateTmx, UpdateMpConfig, UpdateProgram, TmxName, MpConfigName, ProgramName):
+    if (TmxName != "") and (MpConfigName != "") and (ProgramName != "") and (MpConfigName != ProgramName):
+        UserData["Configuration"] = Config
+        UserData["Debug"] = Debug
+        UserData["UpdateTmx"] = UpdateTmx
+        UserData["UpdateMpConfig"] = UpdateMpConfig
+        UserData["UpdateProgram"] = UpdateProgram
+        UserData["TmxName"] = TmxName
+        UserData["MpConfigName"] = MpConfigName
+        UserData["ProgramName"] = ProgramName
+        
+        with open(UserDataPath, "wb") as CreateAlarmsSettings:
+            pickle.dump(UserData, CreateAlarmsSettings)
+        sys.exit()
 
 # Configuration mode function
 def Configuration():
@@ -580,13 +558,22 @@ def Configuration():
     Dialog.setStyleSheet("""
         QWidget{
             background-color:qlineargradient(spread:pad, x1:1, y1:0, x2:1, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(20, 20, 20, 255));
-            color:#ccccdd;
+            color:#cccccc;
             font: 24px \"Bahnschrift SemiLight SemiConde\";
         }
         
         QLabel{
             background-color:transparent;
             color:#888888;
+        }
+
+        QLineEdit{
+            background-color:#3d3d3d;
+            color:#cccccc;
+            border:6;
+            padding-left:10px;
+            height: 50px;
+            border-radius:8px;
         }
 
         QComboBox{
@@ -616,6 +603,28 @@ def Configuration():
             background-color: #222222;
             width: 180px;
             height: 50px;
+        }
+
+        QCheckBox{
+            border-style:none;
+            background-color:transparent;
+        }
+
+        QCheckBox::indicator{
+            top: 2px;
+            width: 50px;
+            height: 50px;
+            background-color: #3d3d3d;
+            border-radius:8px;
+            margin-bottom: 4px;
+        }
+
+        QCheckBox::indicator:hover{
+            background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(55, 55, 55, 255), stop:0.505682 rgba(55, 55, 55, 255), stop:1 rgba(40, 40, 40, 255));
+        }
+
+        QCheckBox::indicator:checked{
+            background-color:qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #095209, stop:1 #0e780e);
         }
 
         QPushButton{
@@ -682,15 +691,20 @@ def Configuration():
     Layout = QFormLayout(parent=FormGroupBox)
     Layout.setHorizontalSpacing(20)
 
-    # Adding widgets
+    #####################################################################################################################################################
+    # Update alarms program
+    #####################################################################################################################################################
+
+    # Configuration selection
     ConfigComboBox = QComboBox()
     ConfigComboBox.addItems(ConfigName)
-    ConfigComboBox.setToolTip("Select configuration with AlarmsCfg.mpalarmxcore file")
+    ConfigComboBox.setToolTip("Select configuration with .mpalarmxcore file")
     ConfigComboBox.setCurrentText(UserData["Configuration"])
     ConfigLabel = QLabel("Select configuration")
-    ConfigLabel.setToolTip("Select configuration with AlarmsCfg.mpalarmxcore file")
+    ConfigLabel.setToolTip("Select configuration with .mpalarmxcore file")
     Layout.addRow(ConfigLabel, ConfigComboBox)
 
+    # Debug option
     DebugPushButton = QPushButton("DEBUG")
     DebugPushButton.setToolTip("Turns on printing of debug messages")
     DebugPushButton.setCheckable(True)
@@ -700,36 +714,85 @@ def Configuration():
     DebugLabel.setToolTip("Turns on printing of debug messages")
     Layout.addRow(DebugLabel, DebugPushButton)
 
-    # RunTmxPushButton = QPushButton("  TMX  ")
-    # RunTmxPushButton.setToolTip("Runs TMX update after dialog confirmation")
-    # RunTmxPushButton.setFixedHeight(50)
-    # RunTmxPushButton.setCheckable(True)
-    # RunMpConfigPushButton = QPushButton("  MpAlarmXCore  ")
-    # RunMpConfigPushButton.setToolTip("Runs MpAlarmXCore update after dialog confirmation")
-    # RunMpConfigPushButton.setFixedHeight(50)
-    # RunMpConfigPushButton.setCheckable(True)
-    # RunProgramPushButton = QPushButton("  Alarms program  ")
-    # RunProgramPushButton.setToolTip("Runs program Alarms update after dialog confirmation")
-    # RunProgramPushButton.setFixedHeight(50)
-    # RunProgramPushButton.setCheckable(True)
-    # RunSeparatelyRow = QHBoxLayout()
-    # RunSeparatelyRow.addWidget(RunTmxPushButton)
-    # RunSeparatelyRow.addSpacing(10)
-    # RunSeparatelyRow.addWidget(RunMpConfigPushButton)
-    # RunSeparatelyRow.addSpacing(10)
-    # RunSeparatelyRow.addWidget(RunProgramPushButton)
-    # UpdateLabel = QLabel("Update after confirmation")
-    # UpdateLabel.setToolTip("Updates selected parts after confirmation")
-    # Layout.addRow(UpdateLabel, RunSeparatelyRow)
+    # Tmx name
+    TmxNameLineEdit = QLineEdit()
+    TmxNameLineEdit.setToolTip("Name of the tmx file without .tmx extension")
+    TmxNameLineEdit.setText(UserData["TmxName"])
+    TmxNameLineEdit.setFixedHeight(50)
+    TmxNameLabel = QLabel("Tmx name")
+    TmxNameLabel.setToolTip("Name of the tmx file without .tmx extension")
+    TmxExtensionLabel = QLabel(".tmx")
+    TmxExtensionLabel.setToolTip("Name of the tmx file without .tmx extension")
+    TmxNameRow = QHBoxLayout()
+    TmxNameRow.addWidget(TmxNameLineEdit)
+    TmxNameRow.addSpacing(10)
+    TmxNameRow.addWidget(TmxExtensionLabel)
+    Layout.addRow(TmxNameLabel, TmxNameRow)
+
+    # MpConfig name
+    MpConfigNameLineEdit = QLineEdit()
+    MpConfigNameLineEdit.setToolTip("Name of the MpConfig file without .mpalarmxcore extension (cannot be same as program name)")
+    MpConfigNameLineEdit.setText(UserData["MpConfigName"])
+    MpConfigNameLineEdit.setFixedHeight(50)
+    MpConfigNameLabel = QLabel("MpConfig name")
+    MpConfigNameLabel.setToolTip("Name of the MpConfig file without .mpalarmxcore extension (cannot be same as program name)")
+    MpConfigExtensionLabel = QLabel(".mpalarmxcore")
+    MpConfigExtensionLabel.setToolTip("Name of the MpConfig file without .mpalarmxcore extension (cannot be same as program name)")
+    MpConfigNameRow = QHBoxLayout()
+    MpConfigNameRow.addWidget(MpConfigNameLineEdit)
+    MpConfigNameRow.addSpacing(10)
+    MpConfigNameRow.addWidget(MpConfigExtensionLabel)
+    Layout.addRow(MpConfigNameLabel, MpConfigNameRow)
+
+    # Program name
+    ProgramNameLineEdit = QLineEdit()
+    ProgramNameLineEdit.setToolTip("Name of the program file without .st/.c extension (cannot be same as MpConfig name)")
+    ProgramNameLineEdit.setText(UserData["ProgramName"])
+    ProgramNameLineEdit.setFixedHeight(50)
+    ProgramNameLabel = QLabel("Program name")
+    ProgramNameLabel.setToolTip("Name of the program file without .st/.c extension (cannot be same as MpConfig name)")
+    ProgramExtensionLabel = QLabel(".st/.c")
+    ProgramExtensionLabel.setToolTip("Name of the program file without .st/.c extension (cannot be same as MpConfig name)")
+    ProgramNameRow = QHBoxLayout()
+    ProgramNameRow.addWidget(ProgramNameLineEdit)
+    ProgramNameRow.addSpacing(10)
+    ProgramNameRow.addWidget(ProgramExtensionLabel)
+    Layout.addRow(ProgramNameLabel, ProgramNameRow)
+
+    # Sections update
+    UpdateTmxCheckBox = QCheckBox("Update TMX")
+    UpdateTmxCheckBox.setToolTip("The script will update the TMX file every build")
+    UpdateTmxCheckBox.setFixedHeight(50)
+    UpdateTmxCheckBox.setChecked(UserData["UpdateTmx"])
+    UpdateMpConfigCheckBox = QCheckBox("Update MpConfig")
+    UpdateMpConfigCheckBox.setToolTip("The script will update the MpAlarmXCore file every build")
+    UpdateMpConfigCheckBox.setFixedHeight(50)
+    UpdateMpConfigCheckBox.setChecked(UserData["UpdateMpConfig"])
+    UpdateProgramCheckBox = QCheckBox("Update Set/Reset")
+    UpdateProgramCheckBox.setToolTip("The script will update the .st/.c program file every build")
+    UpdateProgramCheckBox.setFixedHeight(50)
+    UpdateProgramCheckBox.setChecked(UserData["UpdateProgram"])
+    UpdateSectionRow = QHBoxLayout()
+    UpdateSectionRow.addWidget(UpdateTmxCheckBox)
+    UpdateSectionRow.addSpacing(10)
+    UpdateSectionRow.addWidget(UpdateMpConfigCheckBox)
+    UpdateSectionRow.addSpacing(10)
+    UpdateSectionRow.addWidget(UpdateProgramCheckBox)
+    Layout.addRow(UpdateSectionRow)
 
     # Creating a dialog button for ok and cancel
     FormButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
     # Version label
-    VersionLabel = QLabel("ⓘ v1.1.0", parent=FormButtonBox)
+    VersionLabel = QLabel("ⓘ v1.2.0", parent=FormButtonBox)
     VersionLabel.move(0, 10)
     VersionLabel.setStyleSheet("QLabel{font: 20px \"Bahnschrift SemiLight SemiConde\"; background-color: transparent;} QToolTip{background-color:#eedd22;}")
     VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
+	\nVersion 1.2.0:
+	- Configuration of sections to update
+	- Configuration of TMX name
+	- Configuration of MpConfig name
+	- Configuration of program name
 	\nVersion 1.1.0:
 	- Bug with default alarm behavior fixed
 	- Behavior.Monitoring.MonitoredPV bug fixed
@@ -742,8 +805,11 @@ def Configuration():
 	- Basic functions implemented""")
 
     # Adding actions for form
-    FormButtonBox.accepted.connect(lambda: AcceptConfiguration(ConfigComboBox.currentText(), DebugPushButton.isChecked()))
+    FormButtonBox.accepted.connect(lambda: AcceptConfiguration(ConfigComboBox.currentText(), DebugPushButton.isChecked(), UpdateTmxCheckBox.isChecked(), UpdateMpConfigCheckBox.isChecked(), UpdateProgramCheckBox.isChecked(), TmxNameLineEdit.text(), MpConfigNameLineEdit.text(), ProgramNameLineEdit.text()))
     FormButtonBox.rejected.connect(Dialog.reject)
+    TmxNameLineEdit.textChanged.connect(lambda: TextInputCheck1(TmxNameLineEdit))
+    MpConfigNameLineEdit.textChanged.connect(lambda: TextInputCheck2(MpConfigNameLineEdit, ProgramNameLineEdit))
+    ProgramNameLineEdit.textChanged.connect(lambda: TextInputCheck2(ProgramNameLineEdit, MpConfigNameLineEdit))
 
     # Creating a vertical layout
     MainLayout = QVBoxLayout()
@@ -761,6 +827,30 @@ def Configuration():
     Dialog.show()
     Gui.exec()
 
+# Text input condition check
+def TextInputCheck1(TextInput1: QLineEdit):
+    if (TextInput1.text() == ""):
+        TextInput1.setStyleSheet("QLineEdit{background:#661111;}")
+    else:
+        TextInput1.setStyleSheet("")
+
+# Text inputs condition check
+def TextInputCheck2(TextInput1: QLineEdit, TextInput2: QLineEdit):
+    if (TextInput1.text() == ""):
+        TextInput1.setStyleSheet("QLineEdit{background:#661111;}")
+    else:
+        TextInput1.setStyleSheet("")
+        
+    if (TextInput2.text() == ""):
+        TextInput2.setStyleSheet("QLineEdit{background:#661111;}")
+    else:
+        TextInput2.setStyleSheet("")
+
+    if (TextInput1.text() == TextInput2.text()):
+        TextInput1.setStyleSheet("QLineEdit{background:#661111;}")
+        TextInput2.setStyleSheet("QLineEdit{background:#661111;}")
+
+# Logical folder not found -> show error message
 def LogicalNotFoundMessage():
     # Create dialog gui
     Gui = QApplication([])
@@ -768,7 +858,7 @@ def LogicalNotFoundMessage():
     Dialog.setStyleSheet("""
         QWidget{
             background-color:qlineargradient(spread:pad, x1:1, y1:0, x2:1, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(20, 20, 20, 255));
-            color:#ccccdd;
+            color:#cccccc;
             font: 24px \"Bahnschrift SemiLight SemiConde\";
         }
         
@@ -812,9 +902,6 @@ elif "-prebuild" in sys.argv:
     # Argument -prebuild found
     RunMode = MODE_PREBUILD
 
-    # Get alarms from global types
-    Alarms = GetTypAlarms()
-
 else:
     # Argument -prebuild not found
     RunMode = MODE_CONFIGURATION
@@ -834,16 +921,24 @@ if not RunMode == MODE_ERROR:
         with open(UserDataPath, "rb") as CreateAlarmsSettings:
             UserData = pickle.load(CreateAlarmsSettings)
     except:
-        UserData = {"Configuration":"", "Debug": False}
+        UserData = {"Configuration":"", "Debug": False, "UpdateTmx": True, "UpdateMpConfig": True, "UpdateProgram": True, "TmxName": "Alarms", "MpConfigName": "AlarmsCfg", "ProgramName": "Alarms"}
 
-    if (len(UserData) != 2):
-        UserData = {"Configuration":"", "Debug": False}
+    if (len(UserData) != 8):
+        UserData = {"Configuration":"", "Debug": False, "UpdateTmx": True, "UpdateMpConfig": True, "UpdateProgram": True, "TmxName": "Alarms", "MpConfigName": "AlarmsCfg", "ProgramName": "Alarms"}
 
 # Run respective script mode
 if RunMode == MODE_PREBUILD:
+
+    # Get alarms from global types
+    Alarms = GetTypAlarms()
+
+    # Check properties validity
+    Validity()
+
     Prebuild()
+
 elif RunMode == MODE_CONFIGURATION:
-    # TODO Configuration:
     Configuration()
+
 elif RunMode == MODE_ERROR:
     LogicalNotFoundMessage()

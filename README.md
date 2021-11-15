@@ -74,6 +74,13 @@ Properties Name and Message are generated automatically.
 
 ## Version info
 
+__Version 1.2.0:__
+- Configuration of sections to update
+- Configuration of TMX name
+- Configuration of MpConfig name
+- Configuration of program name
+
+
 __Version 1.1.0:__
 - Bug with default alarm behavior fixed
 - Behavior.Monitoring.MonitoredPV bug fixed
