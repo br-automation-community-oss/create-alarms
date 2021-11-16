@@ -807,9 +807,9 @@ def Configuration():
     # Adding actions for form
     FormButtonBox.accepted.connect(lambda: AcceptConfiguration(ConfigComboBox.currentText(), DebugPushButton.isChecked(), UpdateTmxCheckBox.isChecked(), UpdateMpConfigCheckBox.isChecked(), UpdateProgramCheckBox.isChecked(), TmxNameLineEdit.text(), MpConfigNameLineEdit.text(), ProgramNameLineEdit.text()))
     FormButtonBox.rejected.connect(Dialog.reject)
-    TmxNameLineEdit.textChanged.connect(lambda: TextInputCheck1(TmxNameLineEdit))
-    MpConfigNameLineEdit.textChanged.connect(lambda: TextInputCheck2(MpConfigNameLineEdit, ProgramNameLineEdit))
-    ProgramNameLineEdit.textChanged.connect(lambda: TextInputCheck2(ProgramNameLineEdit, MpConfigNameLineEdit))
+    TmxNameLineEdit.textChanged.connect(lambda: TextInputCheck(TmxNameLineEdit))
+    MpConfigNameLineEdit.textChanged.connect(lambda: TextInputCheck(MpConfigNameLineEdit, ProgramNameLineEdit))
+    ProgramNameLineEdit.textChanged.connect(lambda: TextInputCheck(ProgramNameLineEdit, MpConfigNameLineEdit))
 
     # Creating a vertical layout
     MainLayout = QVBoxLayout()
@@ -827,28 +827,22 @@ def Configuration():
     Dialog.show()
     Gui.exec()
 
-# Text input condition check
-def TextInputCheck1(TextInput1: QLineEdit):
-    if (TextInput1.text() == ""):
-        TextInput1.setStyleSheet("QLineEdit{background:#661111;}")
-    else:
-        TextInput1.setStyleSheet("")
-
 # Text inputs condition check
-def TextInputCheck2(TextInput1: QLineEdit, TextInput2: QLineEdit):
+def TextInputCheck(TextInput1: QLineEdit, TextInput2: QLineEdit = None):
     if (TextInput1.text() == ""):
         TextInput1.setStyleSheet("QLineEdit{background:#661111;}")
     else:
         TextInput1.setStyleSheet("")
-        
-    if (TextInput2.text() == ""):
-        TextInput2.setStyleSheet("QLineEdit{background:#661111;}")
-    else:
-        TextInput2.setStyleSheet("")
 
-    if (TextInput1.text() == TextInput2.text()):
-        TextInput1.setStyleSheet("QLineEdit{background:#661111;}")
-        TextInput2.setStyleSheet("QLineEdit{background:#661111;}")
+    if TextInput2 != None:
+        if (TextInput2.text() == ""):
+            TextInput2.setStyleSheet("QLineEdit{background:#661111;}")
+        else:
+            TextInput2.setStyleSheet("")
+
+        if (TextInput1.text() == TextInput2.text()):
+            TextInput1.setStyleSheet("QLineEdit{background:#661111;}")
+            TextInput2.setStyleSheet("QLineEdit{background:#661111;}")
 
 # Logical folder not found -> show error message
 def LogicalNotFoundMessage():
