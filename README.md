@@ -76,10 +76,9 @@ Properties Name and Message are generated automatically.
 
 __Version 1.2.0:__
 - Configuration of sections to update
-- Configuration of TMX name
-- Configuration of MpConfig name
-- Configuration of program name
-
+- Configuration of TMX, MpConfig and program name
+- Properties validity
+- Strings must be in quotation marks
 
 __Version 1.1.0:__
 - Bug with default alarm behavior fixed

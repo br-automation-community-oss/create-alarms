@@ -22,32 +22,42 @@ LANGUAGE_C = 0
 LANGUAGE_ST = 1
 EXTENSIONS = [".c", ".st"]
 
+# Validity ranges
+RANGE_UDINT = [0, 4294967295]
+RANGE_REAL = [-3.4E38, 3.4E38]
+RANGE_LREAL = [-1.797E308, 1.797E308]
+RANGE_BOOL = ["FALSE", "TRUE", "False", "True", "false", "true"] # TODO Je možné všechny tyto možnosti zapsat do .mpalarmxcore?
+RANGE_BEHAVIOR = ["EdgeAlarm", "PersistentAlarm", "LevelMonitoring"]
+RANGE_DIS_STAT_DYN = ["Disabled", "Static", "Dynamic"]
+RANGE_STAT_DYN = ["Static", "Dynamic"]
+RANGE_NONE = [None]
+
 # Each key represents allowed alarm property, its value is XML element tag
-PROPERTIES = {"Code": {"Tag": "Property", "ID": "Code"},
-              "Severity": {"Tag": "Property", "ID": "Severity"},
-              "Behavior": {"Tag": "Selector", "ID": "Behavior"},
-              "Behavior.MultipleInstances": {"Tag": "Property", "ID": "MultipleInstances"},
-              "Behavior.ReactionUntilAcknowledged": {"Tag": "Property", "ID": "ReactionUntilAcknowledged"},
-              "Behavior.Retain": {"Tag": "Property", "ID": "Retain"},
-              "Behavior.Asynchronous": {"Tag": "Property", "ID": "Async"},
-              "Behavior.Monitoring": {"Tag": "Group", "ID": "Monitoring"},
-              "Behavior.Monitoring.MonitoredPV": {"Tag": "Property", "ID": "MonitoredPV"},
-              "Behavior.Monitoring.LowLimit": {"Tag": "Selector", "ID": "LowLimitEnable"},
-              "Behavior.Monitoring.LowLimit.Limit": {"Tag": "Property", "ID": "Limit"},
-              "Behavior.Monitoring.LowLimit.LimitPV": {"Tag": "Property", "ID": "LimitPV"},
-              "Behavior.Monitoring.LowLimit.LimitText": {"Tag": "Property", "ID": "LimitText"},
-              "Behavior.Monitoring.HighLimit": {"Tag": "Selector", "ID": "HighLimitEnable"},
-              "Behavior.Monitoring.HighLimit.Limit": {"Tag": "Property", "ID": "Limit"},
-              "Behavior.Monitoring.HighLimit.LimitPV": {"Tag": "Property", "ID": "LimitPV"},
-              "Behavior.Monitoring.HighLimit.LimitText": {"Tag": "Property", "ID": "LimitText"},
-              "Behavior.Monitoring.Settings": {"Tag": "Selector", "ID": "Settings"},
-              "Behavior.Monitoring.Settings.Delay": {"Tag": "Property", "ID": "Delay"},
-              "Behavior.Monitoring.Settings.Hysteresis": {"Tag": "Selector", "ID": "Hysteresis"},
-              "Behavior.Monitoring.Settings.DelayPV": {"Tag": "Property", "ID": "DelayPV"},
-              "Behavior.Monitoring.Settings.HysteresisPV": {"Tag": "Property", "ID": "HysteresisPV"},
-              "Disable": {"Tag": "Property", "ID": "Disable"},
-              "AdditionalInformation1": {"Tag": "Property", "ID": "AdditionalInformation1"},
-              "AdditionalInformation2": {"Tag": "Property", "ID": "AdditionalInformation2"}}
+PROPERTIES = {"Code": {"Tag": "Property", "ID": "Code", "Validity": RANGE_UDINT},
+              "Severity": {"Tag": "Property", "ID": "Severity", "Validity": RANGE_UDINT},
+              "Behavior": {"Tag": "Selector", "ID": "Behavior", "Validity": RANGE_BEHAVIOR},
+              "Behavior.MultipleInstances": {"Tag": "Property", "ID": "MultipleInstances", "Validity": RANGE_BOOL},
+              "Behavior.ReactionUntilAcknowledged": {"Tag": "Property", "ID": "ReactionUntilAcknowledged", "Validity": RANGE_BOOL},
+              "Behavior.Retain": {"Tag": "Property", "ID": "Retain", "Validity": RANGE_BOOL},
+              "Behavior.Asynchronous": {"Tag": "Property", "ID": "Async", "Validity": RANGE_BOOL},
+              "Behavior.Monitoring": {"Tag": "Group", "ID": "Monitoring", "Validity": RANGE_NONE},
+              "Behavior.Monitoring.MonitoredPV": {"Tag": "Property", "ID": "MonitoredPV", "Validity": RANGE_NONE},
+              "Behavior.Monitoring.LowLimit": {"Tag": "Selector", "ID": "LowLimitEnable", "Validity": RANGE_DIS_STAT_DYN},
+              "Behavior.Monitoring.LowLimit.Limit": {"Tag": "Property", "ID": "Limit", "Validity": RANGE_LREAL},
+              "Behavior.Monitoring.LowLimit.LimitPV": {"Tag": "Property", "ID": "LimitPV", "Validity": RANGE_NONE},
+              "Behavior.Monitoring.LowLimit.LimitText": {"Tag": "Property", "ID": "LimitText", "Validity": RANGE_NONE},
+              "Behavior.Monitoring.HighLimit": {"Tag": "Selector", "ID": "HighLimitEnable", "Validity": RANGE_DIS_STAT_DYN},
+              "Behavior.Monitoring.HighLimit.Limit": {"Tag": "Property", "ID": "Limit", "Validity": RANGE_LREAL},
+              "Behavior.Monitoring.HighLimit.LimitPV": {"Tag": "Property", "ID": "LimitPV", "Validity": RANGE_NONE},
+              "Behavior.Monitoring.HighLimit.LimitText": {"Tag": "Property", "ID": "LimitText", "Validity": RANGE_NONE},
+              "Behavior.Monitoring.Settings": {"Tag": "Selector", "ID": "Settings", "Validity": RANGE_STAT_DYN},
+              "Behavior.Monitoring.Settings.Delay": {"Tag": "Property", "ID": "Delay", "Validity": RANGE_REAL},
+              "Behavior.Monitoring.Settings.Hysteresis": {"Tag": "Selector", "ID": "Hysteresis", "Validity": RANGE_LREAL},
+              "Behavior.Monitoring.Settings.DelayPV": {"Tag": "Property", "ID": "DelayPV", "Validity": RANGE_NONE},
+              "Behavior.Monitoring.Settings.HysteresisPV": {"Tag": "Property", "ID": "HysteresisPV", "Validity": RANGE_NONE},
+              "Disable": {"Tag": "Property", "ID": "Disable", "Validity": RANGE_BOOL},
+              "AdditionalInformation1": {"Tag": "Property", "ID": "AdditionalInformation1", "Validity": RANGE_NONE},
+              "AdditionalInformation2": {"Tag": "Property", "ID": "AdditionalInformation2", "Validity": RANGE_NONE}}
 
 # Matches structure definition, returns three groups:
 # 1. Name of the structure
@@ -63,7 +73,8 @@ PATTERN_MEMBER = r"([a-zA-Z0-9_]{1,32}).*?BOOL[\s;]*?\(\*.*?\*\)\s*?\(\*(.+?)\*\
 # Matches Key=Value pairs, returns two groups:
 # 1. Key
 # 2. Value
-PATTERN_PAIR = r"([a-zA-Z0-9.]+)[ ]*?=[ ]*?([a-zA-Z0-9.:]+)"
+# TODO U stringů vracet hodnoty bez uvozovek
+PATTERN_PAIR = r"([a-zA-Z0-9.]+)[ ]*?=[ ]*?([a-zA-Z0-9.:-]+|\"[^;]+\")"
 
 #####################################################################################################################################################
 # Class definitions
@@ -178,6 +189,7 @@ def GetTypAlarms():
 
     with open(TypPath, "r") as f:
         TypContent = f.read()
+        f.close()
     
     #####################################################################################################################################################
     # Parse data from Global.typ file
@@ -190,7 +202,7 @@ def Validity():
     #####################################################################################################################################################
     # Validity of dependencies
     #####################################################################################################################################################
-    # No validity of dependencies with basic properties
+    # TODO
     pass
 
 # Update TMX file
@@ -282,15 +294,41 @@ def GetAlarms(Input: str) -> list:
             Properties = []
             for Pair in Pairs:
                 if Pair[0] in PROPERTIES:
-                    Properties.append(
-                        {"Key": Pair[0], "Value": Pair[1], "Valid": True, "Tag": PROPERTIES[Pair[0]]["Tag"], "ID": PROPERTIES[Pair[0]]["ID"]})
+                    Valid = False
+                    try:
+                        ValueNotInRangeText = "Warning: Value of property '" + Pair[0] + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0] + "' is not in valid range "
+                        if type(PROPERTIES[Pair[0]]["Validity"][0]) == int:
+                            if int(Pair[1]) in range(PROPERTIES[Pair[0]]["Validity"][0], PROPERTIES[Pair[0]]["Validity"][1]):
+                                Valid = True
+                            else:
+                                print(ValueNotInRangeText + "<" + str(PROPERTIES[Pair[0]]["Validity"][0]) + "; " + str(PROPERTIES[Pair[0]]["Validity"][1]) + ">")
+
+                        elif type(PROPERTIES[Pair[0]]["Validity"][0]) == float:
+                            if (float(Pair[1]) >= PROPERTIES[Pair[0]]["Validity"][0]) and (float(Pair[1]) <= PROPERTIES[Pair[0]]["Validity"][1]):
+                                Valid = True
+                            else:
+                                print(ValueNotInRangeText + "<" + str(PROPERTIES[Pair[0]]["Validity"][0]) + "; " + str(PROPERTIES[Pair[0]]["Validity"][1]) + ">")
+
+                        elif type(PROPERTIES[Pair[0]]["Validity"][0]) == str:
+                            if Pair[1] in PROPERTIES[Pair[0]]["Validity"]:
+                                Valid = True
+                            else:
+                                if "FALSE" in PROPERTIES[Pair[0]]["Validity"]: print(ValueNotInRangeText + str(RANGE_BOOL))
+                                else: print(ValueNotInRangeText + str(PROPERTIES[Pair[0]]["Validity"]))
+                        elif PROPERTIES[Pair[0]]["Validity"][0] == None:
+                            Valid = True
+                        else:
+                            Valid = False
+                    except:
+                        print("Warning: Wrong data type of property '" + Pair[0] + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0] + "'")
+
+                    Properties.append({"Key": Pair[0], "Value": Pair[1], "Valid": Valid, "Tag": PROPERTIES[Pair[0]]["Tag"], "ID": PROPERTIES[Pair[0]]["ID"]})
                 else:
-                    print("Warning: Key '"+Pair[0]+"' of member 'g"+Structure[0] +
-                          Structure[1]+"Type."+Member[0]+"' is not valid.")
+                    print("Warning: Property '" + Pair[0] + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0]+"' is not valid.")
             if Properties:
                 Properties = sorted(Properties, key=lambda d: d["Key"])
-                Alarms.append(
-                    {"Task": Structure[0], "Type": Structure[1], "Name": Member[0], "Properties": Properties})
+                Alarms.append({"Task": Structure[0], "Type": Structure[1], "Name": Member[0], "Properties": Properties})
+    if UserData["Debug"]: print(Alarms)
     return Alarms
 
 # Tansform alarm list to a tree
@@ -342,6 +380,7 @@ def UpdateMpalarmxcore():
 
     MpAlarmList = et.Element("Group", {"ID": "mapp.AlarmX.Core.Configuration"})
 
+    # TODO: přidávat property jen když je Property["Valid"] == True
     for Index, Alarm in enumerate(Alarms):
         Element = MpAlarmCreateGroup(Index, Alarm)
         MpAlarmList.append(Element)
@@ -402,12 +441,13 @@ def UpdateProgram():
             AutomaticSectionStartFound = True
             InAutomaticSection = True
             for Alarm in Alarms:
-                MonitoringType = False
+                SetResetNotValid = False
                 for Property in Alarm["Properties"]:
-                    if Property["Key"] == "Behavior" and "Monitoring" in Property["Value"]:
-                        MonitoringType = True
-                        break
-                if not MonitoringType:
+                    if Property["Key"] == "Behavior":
+                        if ("Monitoring" in Property["Value"]) or not Property["Valid"]:
+                            SetResetNotValid = True
+                            break
+                if not SetResetNotValid:
                     AlarmVariable = "g" + Alarm["Task"] + "." + Alarm["Type"] + "." + Alarm["Name"]
                     if Alarm["Type"] == "Error":
                         if not(ErrorLastTaskName == Alarm["Task"]):
@@ -504,10 +544,8 @@ def UpdateProgram():
 
 # Prebuild mode function
 def Prebuild():
-    # Ouput window message
-    print("----------------------------- Beginning of the script CreateAlarms -----------------------------")
 
-    if UserData["Debug"]: print(UserData)
+    if UserData["Debug"]: print("User settings:" + str(UserData))
 
     # Update Tmx file
     if UserData["UpdateTmx"]: UpdateTmx()
@@ -517,9 +555,6 @@ def Prebuild():
 
     # Update program file
     if UserData["UpdateProgram"]: UpdateProgram()
-    
-    # Ouput window message
-    print("--------------------------------- End of the script CreateAlarms ---------------------------------")
 
 # Configuration: Configuration accepted
 def AcceptConfiguration(Config, Debug, UpdateTmx, UpdateMpConfig, UpdateProgram, TmxName, MpConfigName, ProgramName):
@@ -574,6 +609,11 @@ def Configuration():
             padding-left:10px;
             height: 50px;
             border-radius:8px;
+        }
+
+        QLineEdit:hover{
+            color:#cccccc;
+            background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(55, 55, 55, 255), stop:0.505682 rgba(55, 55, 55, 255), stop:1 rgba(40, 40, 40, 255));
         }
 
         QComboBox{
@@ -790,9 +830,9 @@ def Configuration():
     VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
 	\nVersion 1.2.0:
 	- Configuration of sections to update
-	- Configuration of TMX name
-	- Configuration of MpConfig name
-	- Configuration of program name
+	- Configuration of TMX, MpConfig and program name
+	- Properties validity
+	- Strings must be in quotation marks
 	\nVersion 1.1.0:
 	- Bug with default alarm behavior fixed
 	- Behavior.Monitoring.MonitoredPV bug fixed
@@ -922,6 +962,9 @@ if not RunMode == MODE_ERROR:
 
 # Run respective script mode
 if RunMode == MODE_PREBUILD:
+    
+    # Ouput window message
+    print("----------------------------- Beginning of the script CreateAlarms -----------------------------")
 
     # Get alarms from global types
     Alarms = GetTypAlarms()
@@ -930,6 +973,9 @@ if RunMode == MODE_PREBUILD:
     Validity()
 
     Prebuild()
+    
+    # Ouput window message
+    print("--------------------------------- End of the script CreateAlarms ---------------------------------")
 
 elif RunMode == MODE_CONFIGURATION:
     Configuration()
