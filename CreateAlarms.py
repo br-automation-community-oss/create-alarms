@@ -3,6 +3,10 @@
 #   Created:	Oct 26, 2021 1:36 PM
 #   Version:	1.2.0
 
+# TODO
+# Přidávat property do mpalarmxcore jen když mají Property["Valid"] == True (pokud není valid nějaký rodič např. Behavior, nezapisovat ani žadný jeho děti)
+# Všechny možnosti RANGE_BOOL zapisovat do .mpalarmxcore jen ve tvaru FALSE/TRUE
+
 #####################################################################################################################################################
 # Dependencies
 #####################################################################################################################################################
@@ -26,7 +30,7 @@ EXTENSIONS = [".c", ".st"]
 RANGE_UDINT = [0, 4294967295]
 RANGE_REAL = [-3.4E38, 3.4E38]
 RANGE_LREAL = [-1.797E308, 1.797E308]
-RANGE_BOOL = ["FALSE", "TRUE", "False", "True", "false", "true"] # TODO Je možné všechny tyto možnosti zapsat do .mpalarmxcore?
+RANGE_BOOL = ["FALSE", "TRUE", "False", "True", "false", "true"]
 RANGE_BEHAVIOR = ["EdgeAlarm", "PersistentAlarm", "LevelMonitoring"]
 RANGE_DIS_STAT_DYN = ["Disabled", "Static", "Dynamic"]
 RANGE_STAT_DYN = ["Static", "Dynamic"]
@@ -73,7 +77,6 @@ PATTERN_MEMBER = r"([a-zA-Z0-9_]{1,32}).*?BOOL[\s;]*?\(\*.*?\*\)\s*?\(\*(.+?)\*\
 # Matches Key=Value pairs, returns two groups:
 # 1. Key
 # 2. Value
-# TODO U stringů vracet hodnoty bez uvozovek
 PATTERN_PAIR = r"([a-zA-Z0-9.]+)[ ]*?=[ ]*?([a-zA-Z0-9.:-]+|\"[^;]+\")"
 
 #####################################################################################################################################################
@@ -122,52 +125,6 @@ def IsDir(DirPath):
         print("Error: Directory " + DirPath + " does not exist.")
         sys.exit()
     return True
-    
-# Insert new configuration
-def MpAlarmCreateNodes(Parent, Properties) -> et.Element:
-    for Item in Properties:
-        if Item.data:
-            Attrib = {"ID": Item.data["ID"]}
-            if "Value" in Item.data:
-                Attrib["Value"] = Item.data["Value"]
-            Element = et.Element(Item.data["Tag"], Attrib)
-            MpAlarmCreateNodes(Element, Item)
-            Parent.append(Element)
-    return Parent
-
-def MpAlarmCreateGroup(Index: int, Alarm: dict) -> et.Element:
-    Group = et.Element("Group", {"ID": "["+str(Index)+"]"})
-    Name = "g"+Alarm["Task"]+"."+Alarm["Type"]+"."+Alarm["Name"]
-    Message = "{$Alarms/"+Name+"}"
-    et.SubElement(Group, "Property", {"ID": "Name", "Value": Name})
-    et.SubElement(Group, "Property", {"ID": "Message", "Value": Message})
-    Properties = CreateTreeFromProperties(Alarm["Properties"])
-    MpAlarmCreateNodes(Group, Properties)
-    return Group
-
-# Function for alarms set/reset text generation
-def AlarmSetReset(VariableSetText, VariableResetText, AlarmVariable, ProgramLanguage):
-    if ProgramLanguage == LANGUAGE_C:
-        VariableSetText += """
-	if (""" + AlarmVariable + """ >  Flag.""" + AlarmVariable + """)
-	{
-		MpAlarmXSet(&gAlarmXCore, \"""" + AlarmVariable + """\");
-	}"""
-        VariableResetText += """
-	if (""" + AlarmVariable + """ <  Flag.""" + AlarmVariable + """)
-	{
-		MpAlarmXReset(&gAlarmXCore, \"""" + AlarmVariable + """\");
-	};"""
-    elif ProgramLanguage == LANGUAGE_ST:
-        VariableSetText += """
-	IF (""" + AlarmVariable + """ >  Flag.""" + AlarmVariable + """) THEN
-		MpAlarmXSet(gAlarmXCore, '""" + AlarmVariable + """');
-	END_IF;"""
-        VariableResetText += """
-	IF (""" + AlarmVariable + """ <  Flag.""" + AlarmVariable + """) THEN
-		MpAlarmXReset(gAlarmXCore, '""" + AlarmVariable + """');
-	END_IF;"""
-    return VariableSetText, VariableResetText
 
 # Get path to Logical directory
 def GetLogicalPath():
@@ -197,13 +154,155 @@ def GetTypAlarms():
     Alarms = GetAlarms(TypContent)
     return Alarms
 
-# Check properties validity
-def Validity():
-    #####################################################################################################################################################
-    # Validity of dependencies
-    #####################################################################################################################################################
-    # TODO
-    pass
+# Parse TYP file and return list of alarms
+def GetAlarms(Input: str) -> list:
+    """
+    Parses Input string and returns list of Alarms.
+
+    Alarm {
+        Task: ""
+        Type: ""
+        Name: ""
+        Properties: [
+            {
+                Key: ""
+                Value: ""
+                Valid: False/True
+                Tag: ""
+            }
+        ]
+    }
+    """
+    Alarms = []
+    Structures = re.findall(PATTERN_STRUCTURE, Input)
+    for Structure in Structures:
+        Members = re.findall(PATTERN_MEMBER, Structure[2])
+        for Member in Members:
+            Pairs = re.findall(PATTERN_PAIR, Member[1])
+            Properties = []
+            for Pair in Pairs:
+                Key = Pair[0]
+                Value = Pair[1]
+                if Value.startswith("\"") and Value.endswith("\""): Value = Value[1:-1]
+                if Key in PROPERTIES:
+                    Valid = False
+                    # Property value validity
+                    try:
+                        ValueNotInRangeText = "Warning: Value of property '" + Key + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0] + "' is not in valid range "
+                        if type(PROPERTIES[Key]["Validity"][0]) == int:
+                            if int(Value) in range(PROPERTIES[Key]["Validity"][0], PROPERTIES[Key]["Validity"][1]):
+                                Valid = True
+                            else:
+                                print(ValueNotInRangeText + "<" + str(PROPERTIES[Key]["Validity"][0]) + "; " + str(PROPERTIES[Key]["Validity"][1]) + ">")
+
+                        elif type(PROPERTIES[Key]["Validity"][0]) == float:
+                            if (float(Value) >= PROPERTIES[Key]["Validity"][0]) and (float(Value) <= PROPERTIES[Key]["Validity"][1]):
+                                Valid = True
+                            else:
+                                print(ValueNotInRangeText + "<" + str(PROPERTIES[Key]["Validity"][0]) + "; " + str(PROPERTIES[Key]["Validity"][1]) + ">")
+
+                        elif type(PROPERTIES[Key]["Validity"][0]) == str:
+                            if Value in PROPERTIES[Key]["Validity"]:
+                                Valid = True
+                            else:
+                                if "FALSE" in PROPERTIES[Key]["Validity"]: print(ValueNotInRangeText + str(RANGE_BOOL))
+                                else: print(ValueNotInRangeText + str(PROPERTIES[Key]["Validity"]))
+                        elif PROPERTIES[Key]["Validity"][0] == None:
+                            Valid = True
+                        else:
+                            Valid = False
+                    except:
+                        print("Warning: Wrong data type of property '" + Key + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0] + "'")
+
+                    Properties.append({"Key": Key, "Value": Value, "Valid": Valid, "Tag": PROPERTIES[Key]["Tag"], "ID": PROPERTIES[Key]["ID"]})
+                else:
+                    print("Warning: Property '" + Key + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0]+"' is not valid.")
+            if Properties:
+                Properties = sorted(Properties, key=lambda d: d["Key"])
+                Alarms.append({"Task": Structure[0], "Type": Structure[1], "Name": Member[0], "Properties": Properties})
+    if UserData["Debug"]: print(Alarms)
+    return Alarms
+
+# Create alarm groups
+def MpAlarmCreateGroup(Index: int, Alarm: dict) -> et.Element:
+    Group = et.Element("Group", {"ID": "["+str(Index)+"]"})
+    Name = "g"+Alarm["Task"]+"."+Alarm["Type"]+"."+Alarm["Name"]
+    Message = "{$Alarms/"+Name+"}"
+    et.SubElement(Group, "Property", {"ID": "Name", "Value": Name})
+    et.SubElement(Group, "Property", {"ID": "Message", "Value": Message})
+    Properties = CreateTreeFromProperties(Alarm["Properties"])
+    MpAlarmCreateNodes(Group, Properties)
+    return Group
+
+# Tansform alarm list to a tree
+def CreateTreeFromProperties(Properties: list) -> Node:
+    Tree = Node("Root")
+    for Item in Properties:
+        Keys = Item["Key"].split(".")
+        Last = Keys.pop(-1)
+        Parent = Tree
+        for Index, Key in enumerate(Keys):
+            Child = Parent.find(Key)
+            if Child:
+                Parent = Child
+            else:
+                if len(Keys) > 1:
+                    PropertyName = ".".join(Keys[0:Index+1])
+                else:
+                    PropertyName = Key
+                Parent = Parent.append(Node(Key, PROPERTIES[PropertyName]))
+        Parent.append(Node(Last, Item))
+    return Tree
+
+# Insert new configuration
+def MpAlarmCreateNodes(Parent, Properties) -> et.Element:
+    for Item in Properties:
+        if Item.data:
+            Attrib = {"ID": Item.data["ID"]}
+            if "Value" in Item.data:
+                Attrib["Value"] = Item.data["Value"]
+            Element = et.Element(Item.data["Tag"], Attrib)
+            MpAlarmCreateNodes(Element, Item)
+            Parent.append(Element)
+    return Parent
+
+# Function for alarms set/reset text generation
+def AlarmSetReset(VariableSetText, VariableResetText, AlarmVariable, ProgramLanguage):
+    if ProgramLanguage == LANGUAGE_C:
+        VariableSetText += """
+	if (""" + AlarmVariable + """ > Flag.""" + AlarmVariable + """)
+	{
+		MpAlarmXSet(&gAlarmXCore, \"""" + AlarmVariable + """\");
+	}"""
+        VariableResetText += """
+	if (""" + AlarmVariable + """ < Flag.""" + AlarmVariable + """)
+	{
+		MpAlarmXReset(&gAlarmXCore, \"""" + AlarmVariable + """\");
+	};"""
+    elif ProgramLanguage == LANGUAGE_ST:
+        VariableSetText += """
+	IF (""" + AlarmVariable + """ > Flag.""" + AlarmVariable + """) THEN
+		MpAlarmXSet(gAlarmXCore, '""" + AlarmVariable + """');
+	END_IF;"""
+        VariableResetText += """
+	IF (""" + AlarmVariable + """ < Flag.""" + AlarmVariable + """) THEN
+		MpAlarmXReset(gAlarmXCore, '""" + AlarmVariable + """');
+	END_IF;"""
+    return VariableSetText, VariableResetText
+
+# Prebuild mode function
+def Prebuild():
+
+    if UserData["Debug"]: print("User settings:" + str(UserData))
+
+    # Update Tmx file
+    if UserData["UpdateTmx"]: UpdateTmx()
+
+    # Update mpalarmxcore file
+    if UserData["UpdateMpConfig"]: UpdateMpalarmxcore()
+
+    # Update program file
+    if UserData["UpdateProgram"]: UpdateProgram()
 
 # Update TMX file
 def UpdateTmx():
@@ -266,91 +365,6 @@ def UpdateTmx():
     TmxFile.write(TmxText)
     TmxFile.close()
 
-# Parse TYP file and return list of alarms
-def GetAlarms(Input: str) -> list:
-    """
-    Parses Input string and returns list of Alarms.
-
-    Alarm {
-        Task: ""
-        Type: ""
-        Name: ""
-        Properties: [
-            {
-                Key: ""
-                Value: ""
-                Valid: False/True
-                Tag: ""
-            }
-        ]
-    }
-    """
-    Alarms = []
-    Structures = re.findall(PATTERN_STRUCTURE, Input)
-    for Structure in Structures:
-        Members = re.findall(PATTERN_MEMBER, Structure[2])
-        for Member in Members:
-            Pairs = re.findall(PATTERN_PAIR, Member[1])
-            Properties = []
-            for Pair in Pairs:
-                if Pair[0] in PROPERTIES:
-                    Valid = False
-                    try:
-                        ValueNotInRangeText = "Warning: Value of property '" + Pair[0] + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0] + "' is not in valid range "
-                        if type(PROPERTIES[Pair[0]]["Validity"][0]) == int:
-                            if int(Pair[1]) in range(PROPERTIES[Pair[0]]["Validity"][0], PROPERTIES[Pair[0]]["Validity"][1]):
-                                Valid = True
-                            else:
-                                print(ValueNotInRangeText + "<" + str(PROPERTIES[Pair[0]]["Validity"][0]) + "; " + str(PROPERTIES[Pair[0]]["Validity"][1]) + ">")
-
-                        elif type(PROPERTIES[Pair[0]]["Validity"][0]) == float:
-                            if (float(Pair[1]) >= PROPERTIES[Pair[0]]["Validity"][0]) and (float(Pair[1]) <= PROPERTIES[Pair[0]]["Validity"][1]):
-                                Valid = True
-                            else:
-                                print(ValueNotInRangeText + "<" + str(PROPERTIES[Pair[0]]["Validity"][0]) + "; " + str(PROPERTIES[Pair[0]]["Validity"][1]) + ">")
-
-                        elif type(PROPERTIES[Pair[0]]["Validity"][0]) == str:
-                            if Pair[1] in PROPERTIES[Pair[0]]["Validity"]:
-                                Valid = True
-                            else:
-                                if "FALSE" in PROPERTIES[Pair[0]]["Validity"]: print(ValueNotInRangeText + str(RANGE_BOOL))
-                                else: print(ValueNotInRangeText + str(PROPERTIES[Pair[0]]["Validity"]))
-                        elif PROPERTIES[Pair[0]]["Validity"][0] == None:
-                            Valid = True
-                        else:
-                            Valid = False
-                    except:
-                        print("Warning: Wrong data type of property '" + Pair[0] + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0] + "'")
-
-                    Properties.append({"Key": Pair[0], "Value": Pair[1], "Valid": Valid, "Tag": PROPERTIES[Pair[0]]["Tag"], "ID": PROPERTIES[Pair[0]]["ID"]})
-                else:
-                    print("Warning: Property '" + Pair[0] + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0]+"' is not valid.")
-            if Properties:
-                Properties = sorted(Properties, key=lambda d: d["Key"])
-                Alarms.append({"Task": Structure[0], "Type": Structure[1], "Name": Member[0], "Properties": Properties})
-    if UserData["Debug"]: print(Alarms)
-    return Alarms
-
-# Tansform alarm list to a tree
-def CreateTreeFromProperties(Properties: list) -> Node:
-    Tree = Node("Root")
-    for Item in Properties:
-        Keys = Item["Key"].split(".")
-        Last = Keys.pop(-1)
-        Parent = Tree
-        for Index, Key in enumerate(Keys):
-            Child = Parent.find(Key)
-            if Child:
-                Parent = Child
-            else:
-                if len(Keys) > 1:
-                    PropertyName = ".".join(Keys[0:Index+1])
-                else:
-                    PropertyName = Key
-                Parent = Parent.append(Node(Key, PROPERTIES[PropertyName]))
-        Parent.append(Node(Last, Item))
-    return Tree
-
 # Update mpalarmxcore file
 def UpdateMpalarmxcore():
     #####################################################################################################################################################
@@ -361,10 +375,9 @@ def UpdateMpalarmxcore():
     print("Updating " + UserData["MpConfigName"] + ".mpalarmxcore file...")
 
     # Create path to mpalarmxcore
-    ConfigDir = os.path.dirname(os.path.abspath(__file__))
-    ConfigDir = ConfigDir[:ConfigDir.find("Logical")]
-    ConfigDir = os.path.join(ConfigDir, "Physical", UserData["Configuration"])
+    ConfigDir = os.path.join(ProjectPath, "Physical", UserData["Configuration"])
     MpAlarmPath = FindFilePath(ConfigDir, UserData["MpConfigName"] + ".mpalarmxcore", True)
+
     # Load file
     IsFile(MpAlarmPath)
 
@@ -374,13 +387,11 @@ def UpdateMpalarmxcore():
     # Remove old configuration
     # Parent = MpAlarmRoot.find(".//Group[@ID=\"mapp.AlarmX.Core.Configuration\"]")
     Parent = MpAlarmRoot.find(".//Element[@Type=\"mpalarmxcore\"]")
-    for Group in Parent.findall(
-            ".//Group[@ID=\"mapp.AlarmX.Core.Configuration\"]"):
+    for Group in Parent.findall(".//Group[@ID=\"mapp.AlarmX.Core.Configuration\"]"):
         Parent.remove(Group)
 
     MpAlarmList = et.Element("Group", {"ID": "mapp.AlarmX.Core.Configuration"})
 
-    # TODO: přidávat property jen když je Property["Valid"] == True
     for Index, Alarm in enumerate(Alarms):
         Element = MpAlarmCreateGroup(Index, Alarm)
         MpAlarmList.append(Element)
@@ -541,20 +552,6 @@ def UpdateProgram():
         AlarmsTypFile = open(AlarmsTypPath,"w")
         AlarmsTypFile.write(AlarmsTypText)
         AlarmsTypFile.close()
-
-# Prebuild mode function
-def Prebuild():
-
-    if UserData["Debug"]: print("User settings:" + str(UserData))
-
-    # Update Tmx file
-    if UserData["UpdateTmx"]: UpdateTmx()
-
-    # Update mpalarmxcore file
-    if UserData["UpdateMpConfig"]: UpdateMpalarmxcore()
-
-    # Update program file
-    if UserData["UpdateProgram"]: UpdateProgram()
 
 # Configuration: Configuration accepted
 def AcceptConfiguration(Config, Debug, UpdateTmx, UpdateMpConfig, UpdateProgram, TmxName, MpConfigName, ProgramName):
@@ -941,7 +938,7 @@ else:
     RunMode = MODE_CONFIGURATION
 
 if not RunMode == MODE_ERROR:
-    # Get project name
+    # Get project path and name
     ProjectPath = LogicalPath[:LogicalPath.find("Logical") - 1]
     ProjectName = os.path.basename(ProjectPath)
 
@@ -968,10 +965,7 @@ if RunMode == MODE_PREBUILD:
 
     # Get alarms from global types
     Alarms = GetTypAlarms()
-
-    # Check properties validity
-    Validity()
-
+    
     Prebuild()
     
     # Ouput window message
