@@ -185,35 +185,7 @@ def GetAlarms(Input: str) -> list:
                 Value = Pair[1]
                 if Value.startswith("\"") and Value.endswith("\""): Value = Value[1:-1]
                 if Key in PROPERTIES:
-                    Valid = False
-                    # Property value validity
-                    try:
-                        ValueNotInRangeText = "Warning: Value of property '" + Key + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0] + "' is not in valid range "
-                        if type(PROPERTIES[Key]["Validity"][0]) == int:
-                            if int(Value) in range(PROPERTIES[Key]["Validity"][0], PROPERTIES[Key]["Validity"][1]):
-                                Valid = True
-                            else:
-                                print(ValueNotInRangeText + "<" + str(PROPERTIES[Key]["Validity"][0]) + "; " + str(PROPERTIES[Key]["Validity"][1]) + ">")
-
-                        elif type(PROPERTIES[Key]["Validity"][0]) == float:
-                            if (float(Value) >= PROPERTIES[Key]["Validity"][0]) and (float(Value) <= PROPERTIES[Key]["Validity"][1]):
-                                Valid = True
-                            else:
-                                print(ValueNotInRangeText + "<" + str(PROPERTIES[Key]["Validity"][0]) + "; " + str(PROPERTIES[Key]["Validity"][1]) + ">")
-
-                        elif type(PROPERTIES[Key]["Validity"][0]) == str:
-                            if Value in PROPERTIES[Key]["Validity"]:
-                                Valid = True
-                            else:
-                                if "FALSE" in PROPERTIES[Key]["Validity"]: print(ValueNotInRangeText + str(RANGE_BOOL))
-                                else: print(ValueNotInRangeText + str(PROPERTIES[Key]["Validity"]))
-                        elif PROPERTIES[Key]["Validity"][0] == None:
-                            Valid = True
-                        else:
-                            Valid = False
-                    except:
-                        print("Warning: Wrong data type of property '" + Key + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0] + "'")
-
+                    Valid = Validity("g" + Structure[0] + Structure[1] + "Type." + Member[0], Key, Value)
                     Properties.append({"Key": Key, "Value": Value, "Valid": Valid, "Tag": PROPERTIES[Key]["Tag"], "ID": PROPERTIES[Key]["ID"]})
                 else:
                     print("Warning: Property '" + Key + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0]+"' is not valid.")
@@ -222,6 +194,37 @@ def GetAlarms(Input: str) -> list:
                 Alarms.append({"Task": Structure[0], "Type": Structure[1], "Name": Member[0], "Properties": Properties})
     if UserData["Debug"]: print(Alarms)
     return Alarms
+
+# Check validity of property value
+def Validity(Name, Key, Value):
+    Valid = False
+    try:
+        ValueNotInRangeText = "Warning: Value of property '" + Key + "' of member '" + Name + "' is not in valid range "
+        if type(PROPERTIES[Key]["Validity"][0]) == int:
+            if int(Value) in range(PROPERTIES[Key]["Validity"][0], PROPERTIES[Key]["Validity"][1]):
+                Valid = True
+            else:
+                print(ValueNotInRangeText + "<" + str(PROPERTIES[Key]["Validity"][0]) + "; " + str(PROPERTIES[Key]["Validity"][1]) + ">")
+
+        elif type(PROPERTIES[Key]["Validity"][0]) == float:
+            if (float(Value) >= PROPERTIES[Key]["Validity"][0]) and (float(Value) <= PROPERTIES[Key]["Validity"][1]):
+                Valid = True
+            else:
+                print(ValueNotInRangeText + "<" + str(PROPERTIES[Key]["Validity"][0]) + "; " + str(PROPERTIES[Key]["Validity"][1]) + ">")
+
+        elif type(PROPERTIES[Key]["Validity"][0]) == str:
+            if Value in PROPERTIES[Key]["Validity"]:
+                Valid = True
+            else:
+                if "FALSE" in PROPERTIES[Key]["Validity"]: print(ValueNotInRangeText + str(RANGE_BOOL))
+                else: print(ValueNotInRangeText + str(PROPERTIES[Key]["Validity"]))
+        elif PROPERTIES[Key]["Validity"][0] == None:
+            Valid = True
+
+    except:
+        print("Warning: Wrong data type of property '" + Key + "' of member '" + Name + "'")
+
+    return Valid
 
 # Create alarm groups
 def MpAlarmCreateGroup(Index: int, Alarm: dict) -> et.Element:
@@ -965,7 +968,7 @@ if RunMode == MODE_PREBUILD:
 
     # Get alarms from global types
     Alarms = GetTypAlarms()
-    
+
     Prebuild()
     
     # Ouput window message
