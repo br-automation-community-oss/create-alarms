@@ -5,7 +5,6 @@
 
 # TODO
 # Přidávat property do mpalarmxcore jen když mají Property["Valid"] == True (pokud není valid nějaký rodič např. Behavior, nezapisovat ani žadný jeho děti)
-# Všechny možnosti RANGE_BOOL zapisovat do .mpalarmxcore jen ve tvaru FALSE/TRUE
 
 #####################################################################################################################################################
 # Dependencies
@@ -185,6 +184,8 @@ def GetAlarms(Input: str) -> list:
                 Value = Pair[1]
                 if Value.startswith("\"") and Value.endswith("\""): Value = Value[1:-1]
                 if Key in PROPERTIES:
+                    if "FALSE" in PROPERTIES[Key]["Validity"]:
+                        Value = Value.upper()
                     Valid = Validity("g" + Structure[0] + Structure[1] + "Type." + Member[0], Key, Value)
                     Properties.append({"Key": Key, "Value": Value, "Valid": Valid, "Tag": PROPERTIES[Key]["Tag"], "ID": PROPERTIES[Key]["ID"]})
                 else:
