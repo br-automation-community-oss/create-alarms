@@ -4,7 +4,7 @@
 #   Version:	1.2.0
 
 # TODO
-# Přidávat property do mpalarmxcore jen když mají Property["Valid"] == True (pokud není valid nějaký rodič např. Behavior, nezapisovat ani žadný jeho děti)
+# 
 
 #####################################################################################################################################################
 # Dependencies
@@ -235,6 +235,7 @@ def MpAlarmCreateGroup(Index: int, Alarm: dict) -> et.Element:
     et.SubElement(Group, "Property", {"ID": "Name", "Value": Name})
     et.SubElement(Group, "Property", {"ID": "Message", "Value": Message})
     Properties = CreateTreeFromProperties(Alarm["Properties"])
+    Properties = RemoveInvalidProperties(Properties)
     MpAlarmCreateNodes(Group, Properties)
     return Group
 
@@ -257,6 +258,15 @@ def CreateTreeFromProperties(Properties: list) -> Node:
                 Parent = Parent.append(Node(Key, PROPERTIES[PropertyName]))
         Parent.append(Node(Last, Item))
     return Tree
+
+# Remove invalid properties
+def RemoveInvalidProperties(Properties: list) -> list:
+    for Index, Item in enumerate(Properties.children):
+        if ("Valid" in Item.data and Item.data["Valid"]) or ("Validity" in Item.data and Item.data["Validity"] == RANGE_NONE):
+            RemoveInvalidProperties(Item)
+        else:
+            del(Properties.children[Index])
+    return Properties
 
 # Insert new configuration
 def MpAlarmCreateNodes(Parent, Properties) -> et.Element:
