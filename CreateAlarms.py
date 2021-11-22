@@ -1,10 +1,12 @@
 #   Copyright:  B&R Industrial Automation
 #   Authors:    Adam Sefranek, Michal Vavrik
 #   Created:	Oct 26, 2021 1:36 PM
-#   Version:	1.2.0
+#   Version:	1.3.0
 
 # TODO
-# 
+# Nahradit TaskName -> VariableName
+# Doplnit zbyvajici properties
+# Pridat podporu pro pole
 
 #####################################################################################################################################################
 # Dependencies
@@ -835,10 +837,12 @@ def Configuration():
     FormButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
     # Version label
-    VersionLabel = QLabel("ⓘ v1.2.0", parent=FormButtonBox)
+    VersionLabel = QLabel("ⓘ v1.3.0", parent=FormButtonBox)
     VersionLabel.move(0, 10)
     VersionLabel.setStyleSheet("QLabel{font: 20px \"Bahnschrift SemiLight SemiConde\"; background-color: transparent;} QToolTip{background-color:#eedd22;}")
     VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
+	\nVersion 1.3.0:
+	- 
 	\nVersion 1.2.0:
 	- Configuration of sections to update
 	- Configuration of TMX, MpConfig and program name
