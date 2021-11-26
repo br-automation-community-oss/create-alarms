@@ -137,6 +137,10 @@ def TerminateScript():
     print("--------------------------------- End of the script CreateAlarms ---------------------------------")
     sys.exit()
 
+# Debug printing
+def DebugPrint(Message, Data):
+    if UserData["Debug"]: print(">> " + Message + " >> " + str(Data) + "\n")
+
 # Finds file in directory and subdirectories, returns path to the FIRST found file and terminates script if file does not found and termination is required
 # If *.extension FileName input (i.e. *.var) is specified, returns list of all occurrences of this extension
 def FindFilePath(SourcePath, FileName, Terminate):
@@ -210,7 +214,7 @@ def GetVarPaths():
             PathsToRemove.append(VarPath)
 
     VarPaths = list(set(VarPaths) - set(PathsToRemove))
-    if UserData["Debug"]: print("All valid .var files " + str(VarPaths))
+    DebugPrint("All valid .var files", VarPaths)
 
     return VarPaths
 
@@ -222,7 +226,7 @@ def GetGlobalVars():
     GlobalVars [{
         Name: ""
         Type: ""
-        Array: ["Start", "End"]
+        Array: [Start, End]
     }]
 
     GlobalConsts [{
@@ -257,8 +261,8 @@ def GetGlobalVars():
     
     GlobalConsts = GetConstsValue(GlobalConsts)
     ReplaceConstsByNums(GlobalVars, GlobalConsts)
-    if UserData["Debug"]: print(">> Global variables: " + str(GlobalVars))
-    if UserData["Debug"]: print(">> Global constants: " + str(GlobalConsts))
+    DebugPrint("Global variables", GlobalVars)
+    DebugPrint("Global constants", GlobalConsts)
 
     return GlobalVars, GlobalConsts
 
@@ -360,7 +364,7 @@ def GetAlarms(Input: str) -> list:
             if Properties:
                 Properties = sorted(Properties, key=lambda d: d["Key"])
                 Alarms.append({"Task": Structure[0], "Type": Structure[1], "Name": Member[0], "Properties": Properties})
-    if UserData["Debug"]: print(Alarms)
+    DebugPrint("Alarms", Alarms)
     return Alarms
 
 # Check validity of property value
@@ -474,7 +478,7 @@ def AlarmSetReset(VariableSetText, VariableResetText, AlarmVariable, ProgramLang
 # Prebuild mode function
 def Prebuild():
 
-    if UserData["Debug"]: print("User settings:" + str(UserData))
+    DebugPrint("User settings", UserData)
 
     # Update Tmx file
     if UserData["UpdateTmx"]: UpdateTmx()
@@ -504,21 +508,21 @@ def UpdateTmx():
     for TmxItem in TmxRoot.findall(".//tu"):
         TmxAlarms.append(TmxItem.attrib["tuid"])
 
-    if UserData["Debug"]: print("Tmx alamrs: " + str(TmxAlarms))
+    DebugPrint("Tmx alarms", TmxAlarms)
 
     # Get alarm names list from Global.typ file
     TypAlarms = []
     for Alarm in Alarms:
         TypAlarms.append("g" + Alarm["Task"] + "." + Alarm["Type"] + "." + Alarm["Name"])
 
-    if UserData["Debug"]: print("Typ alarms: " + str(TypAlarms))
+    DebugPrint("Typ alarms", TypAlarms)
 
     # Compare alarm names lists
     NewAlarms = list(set(TypAlarms) - set(TmxAlarms))
     MissingAlarms = list(set(TmxAlarms) - set(TypAlarms))
     if UserData["Debug"]:
-        print("New alarms are: " + str(NewAlarms))
-        print("Missing alarms are: " + str(MissingAlarms))
+        DebugPrint("New alarms", NewAlarms)
+        DebugPrint("Missing alarms", MissingAlarms)
 
     # Remove missing alarms
     Parent = TmxRoot.find(".//body")
