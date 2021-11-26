@@ -26,6 +26,7 @@ MODE_ERROR = 2
 LANGUAGE_C = 0
 LANGUAGE_ST = 1
 EXTENSIONS = [".c", ".st"]
+PERMITTED_TYPES_OF_ARRAY_CONSTANTS = ["USINT", "SINT", "UINT", "INT", "UDINT", "DINT"]
 
 # Validity ranges
 RANGE_UDINT = [0, 4294967295]
@@ -64,21 +65,47 @@ PROPERTIES = {"Code": {"Tag": "Property", "ID": "Code", "Validity": RANGE_UDINT}
               "AdditionalInformation1": {"Tag": "Property", "ID": "AdditionalInformation1", "Validity": RANGE_NONE},
               "AdditionalInformation2": {"Tag": "Property", "ID": "AdditionalInformation2", "Validity": RANGE_NONE}}
 
-# Matches structure definition, returns three groups:
-# 1. Name of the structure
-# 2. Structure suffix (Error, Info, Warning)
-# 3. Members of the structure
+# Patterns for global types parsing
+    # Matches structure definition, returns 3 groups:
+    # 1. Name of the structure
+    # 2. Structure suffix (Error, Info, Warning)
+    # 3. Members of the structure
 PATTERN_STRUCTURE = r"g([a-zA-Z0-9]{1,10})(Error|Info|Warning)Type[^\n]+\n([\s\S]*?)END_STRUCT"
 
-# Matches BOOL structure members with Description[2] filled in, returns two groups:
-# 1. Name of the member
-# 2. Content of Description[2]
+    # Matches BOOL structure members with Description[2] filled in, returns 2 groups:
+    # 1. Name of the member
+    # 2. Content of Description[2]
 PATTERN_MEMBER = r"([a-zA-Z0-9_]{1,32}).*?BOOL[\s;]*?\(\*.*?\*\)\s*?\(\*(.+?)\*\)\s*?(?:\(.*?)?[ ]*?\n"
 
-# Matches Key=Value pairs, returns two groups:
-# 1. Key
-# 2. Value
+    # Matches Key=Value pairs, returns 2 groups:
+    # 1. Key
+    # 2. Value
 PATTERN_PAIR = r"([a-zA-Z0-9.]+)[ ]*?=[ ]*?([a-zA-Z0-9.:-]+|\"[^;]+\")"
+
+# Patterns for global variables and constants parsing
+    # Matches VAR sections, returns 3 groups:
+    # 1. VAR RETAIN section
+    # 2. VAR CONSTANT section
+    # 3. VAR section
+PATTERN_VAR_SECTION = r"VAR RETAIN\s{0,}\n\s{0,}([\s\S]*?)\n\s{0,}END_VAR|VAR CONSTANT\s{0,}\n\s{0,}([\s\S]*?)\n\s{0,}END_VAR|VAR[^\na-zA-Z]{0,}\n\s{0,}([\s\S]*?)\n\s{0,}END_VAR"
+
+    # Matches variables in sections, returns 7 groups:
+    # 1. Variable name of non array variables
+    # 2. UNREPLICABLE tag
+    # 3. Type of non array variables
+    # 4. Variable name of array variables
+    # 5. Start value of array
+    # 6. End value of array
+    # 7. Type of array variables
+PATTERN_VARIABLE = r"([a-zA-Z0-9_]+)\s{0,}:\s{0,}(\{REDUND_UNREPLICABLE\}){0,1}\s{0,}([a-zA-Z0-9_]+)[^;\[\]]{0,};|([a-zA-Z0-9_]+)\s{0,}:\s{0,}ARRAY\[([a-zA-Z0-9_-]+)..([a-zA-Z0-9_-]+)\]\s{0,}OF\s{0,}([a-zA-Z0-9_]+)[^;]{0,};"
+
+    # Matches constants in sections, returns 3 groups:
+    # 1. Name
+    # 2. Type
+    # 3. Value
+PATTERN_CONSTANT = r"([a-zA-Z0-9_]+)\s{0,}:\s{0,}([a-zA-Z0-9_]+)\s{0,}:=\s{0,}([^;]+);"
+
+PATTERN_CONSTANT_VALUE = r"([a-zA-Z][a-zA-Z0-9_]{0,})"
 
 #####################################################################################################################################################
 # Class definitions
@@ -102,29 +129,47 @@ class Node(object):
 #####################################################################################################################################################
 # Global functions
 #####################################################################################################################################################
-# Finds file in directory and subdirectories, returns path to the first found file and terminates script if file does not found and termination is required
+# Terminates the script
+def TerminateScript():
+    # Ouput window message
+    print("--------------------------------- End of the script CreateAlarms ---------------------------------")
+    sys.exit()
+
+# Finds file in directory and subdirectories, returns path to the FIRST found file and terminates script if file does not found and termination is required
+# If *.extension FileName input (i.e. *.var) is specified, returns list of all occurrences of this extension
 def FindFilePath(SourcePath, FileName, Terminate):
-    FilePath = ""
+    if "*" in FileName: FilePath = []
+    else: FilePath = ""
+    EndLoop = False
     for DirPath, DirNames, FileNames in os.walk(SourcePath):
-        for FileNam in [File for File in FileNames if File == FileName]:
-            FilePath = (os.path.join(DirPath, FileNam))
-    if FilePath == "" and Terminate:
+        if "*" in FileName:
+            for File in FileNames:
+                if File.endswith(FileName[1:]):
+                    FilePath.append(os.path.join(DirPath, File))
+        else:
+            for File in FileNames:
+                if File == FileName:
+                    FilePath = os.path.join(DirPath, File)
+                    EndLoop = True
+            if EndLoop:
+                break
+    if (FilePath == "" or FilePath == []) and Terminate:
         print("Error: File " + FileName + " does not exist.")
-        sys.exit()
+        TerminateScript()
     return FilePath
 
 # Checks if file exists and terminates script if not
 def IsFile(FilePath):
     if not os.path.isfile(FilePath):
         print("Error: File " + os.path.basename(FilePath) + " does not exist.")
-        sys.exit()
+        TerminateScript()
     return True
 
 # Checks if directory exists and terminates script if not
 def IsDir(DirPath):
     if not os.path.isdir(DirPath):
         print("Error: Directory " + DirPath + " does not exist.")
-        sys.exit()
+        TerminateScript()
     return True
 
 # Get path to Logical directory
@@ -136,6 +181,124 @@ def GetLogicalPath():
     else:
         LogicalPath = LogicalPath[:LogicalPath.find("Logical") + 7]
     return LogicalPath
+
+# Get all variable paths excluding private var files and var files from Libraries
+def GetVarPaths():
+    # Get path to all .var files
+    VarPaths = FindFilePath(LogicalPath, "*.var", True)
+
+    # Remove undesirable var files
+    PathsToRemove = []
+    for VarPath in VarPaths:
+        VarName = os.path.basename(VarPath)
+        VarDir = os.path.dirname(VarPath)
+
+        # Remove all "Libraries" variable files
+        if "Libraries" in VarPath:
+            PathsToRemove.append(VarPath)
+
+        # Remove all Private variable files
+        elif os.path.isfile(os.path.join(VarDir, "Package.pkg")):
+            PkgPath = os.path.join(VarDir, "Package.pkg")
+            PkgFile = open(PkgPath, "r")
+            for Line in PkgFile:
+                if (VarName in Line) and ("Private=\"true\"" in Line):
+                    PathsToRemove.append(VarPath)
+        else:
+            PathsToRemove.append(VarPath)
+
+    VarPaths = list(set(VarPaths) - set(PathsToRemove))
+    if UserData["Debug"]: print("All valid .var files " + str(VarPaths))
+
+    return VarPaths
+
+# Get all global variables from VarPaths
+def GetGlobalVars():
+    """
+    Parses variables and constants from all valid global .var files.
+
+    GlobalVars [{
+        Name: ""
+        Type: ""
+        Array: ["Start", "End"]
+    }]
+
+    GlobalConsts [{
+        Name: ""
+        Type: ""
+        Value: ""
+    }]
+    """
+    GlobalVars = []
+    GlobalConsts = []
+    for VarPath in VarPaths:
+        VarFile = open(VarPath, "r")
+        VarText = VarFile.read()
+        VarFile.close()
+        VarStructures = re.findall(PATTERN_VAR_SECTION, VarText)
+        for VarStructure in VarStructures:
+            if (VarStructure[0] != '') or (VarStructure[2] != ''):
+                if VarStructure[0] != '':
+                    Vars = re.findall(PATTERN_VARIABLE, VarStructure[0])
+                else:
+                    Vars = re.findall(PATTERN_VARIABLE, VarStructure[2])
+                for Var in Vars:
+                    if Var[0] != '':
+                        GlobalVars.append({"Name":Var[0], "Type":Var[2], "Array": None})
+                    elif Var[3] != '':
+                        GlobalVars.append({"Name":Var[3], "Type":Var[6], "Array": [Var[4], Var[5]]})
+            elif VarStructure[1] != '':
+                Vars = re.findall(PATTERN_CONSTANT, VarStructure[1])
+                for Var in Vars:
+                    if Var[1] in PERMITTED_TYPES_OF_ARRAY_CONSTANTS:
+                        GlobalConsts.append({"Name":Var[0], "Type":Var[1], "Value": Var[2]})
+    
+    GlobalConsts = GetConstsValue(GlobalConsts)
+    ReplaceConstsByNums(GlobalVars, GlobalConsts)
+    if UserData["Debug"]: print(">> Global variables: " + str(GlobalVars))
+    if UserData["Debug"]: print(">> Global constants: " + str(GlobalConsts))
+
+    return GlobalVars, GlobalConsts
+
+# Get value of all constants
+def GetConstsValue(Consts):
+    NotDoneConsts = []
+    DoneConstsName = []
+    DoneConstsValue = []
+    for Index, Const in enumerate(Consts):
+        try:
+            if type(Const["Value"]) == str:
+                Consts[Index]["Value"] = int(eval(Const["Value"]))
+                DoneConstsName.append(Const["Name"])
+                DoneConstsValue.append(Const["Value"])
+        except:
+            NotDoneConsts.append(Const)
+    if NotDoneConsts != []:
+        for Index, Const in enumerate(NotDoneConsts):
+            InnerConsts = re.findall(PATTERN_CONSTANT_VALUE, Const["Value"])
+            for InnerConst in InnerConsts:
+                if InnerConst in DoneConstsName:
+                    # Consts[Find index of Const with Name in NotDoneConsts[Index]["Name"]]["Value"] = replace all InnerConst by values
+                    Consts[next((index for (index, d) in enumerate(Consts) if d["Name"] == NotDoneConsts[Index]["Name"]), None)]["Value"] = re.sub(r"\b%s\b" % InnerConst, str(DoneConstsValue[DoneConstsName.index(InnerConst)]), NotDoneConsts[Index]["Value"])
+        GetConstsValue(Consts)
+        return Consts
+    else:
+        return Consts
+
+# Replace global vars constant defined arrays by numbers
+def ReplaceConstsByNums(GlobalVars, GlobalConsts):
+    for Index, GlobalVar in enumerate(GlobalVars):
+        if GlobalVar["Array"] != None:
+            for i in (0,1):
+                try:
+                    GlobalVars[Index]["Array"][i] = int(GlobalVar["Array"][i])
+                except:
+                    try:
+                        GlobalVars[Index]["Array"][i] = GlobalConsts[next((index for (index, d) in enumerate(GlobalConsts) if d["Name"] == GlobalVar["Array"][i]), None)]["Value"]
+                    except:
+                        print("Error: Constant " + GlobalVar["Array"][i] + " in array of variable " + GlobalVar["Name"] + " cannot be found.")
+                        TerminateScript()
+    return GlobalVars
 
 # Get alarms
 def GetTypAlarms():
@@ -510,10 +673,10 @@ def UpdateProgram():
     ProgramFile.close()
     if not AutomaticSectionStartFound:
         print("Error: Start of automatically generated section not found. Insert comment // START OF AUTOMATIC CODE GENERATION // to Alarms" + EXTENSIONS[ProgramLanguage] + ".")
-        sys.exit()
+        TerminateScript()
     elif InAutomaticSection:
         print("Error: End of automatically generated section not found. Insert comment // END OF AUTOMATIC CODE GENERATION // to Alarms" + EXTENSIONS[ProgramLanguage] + ".")
-        sys.exit()
+        TerminateScript()
     else:
         ProgramFile = open(ProgramPath,"w")
         ProgramFile.write(ProgramText)
@@ -560,10 +723,10 @@ def UpdateProgram():
     AlarmsTypFile.close()
     if not AutomaticSectionStartFound:
         print("Error: Start of automatically generated section not found. Insert comment // START OF AUTOMATIC CODE GENERATION // to Alarms.typ.")
-        sys.exit()
+        TerminateScript()
     elif InAutomaticSection:
         print("Error: End of automatically generated section not found. Insert comment // END OF AUTOMATIC CODE GENERATION // to Alarms.typ.")
-        sys.exit()
+        TerminateScript()
     else:
         AlarmsTypFile = open(AlarmsTypPath,"w")
         AlarmsTypFile.write(AlarmsTypText)
@@ -980,6 +1143,12 @@ if RunMode == MODE_PREBUILD:
     
     # Ouput window message
     print("----------------------------- Beginning of the script CreateAlarms -----------------------------")
+
+    # Get all valid var files
+    VarPaths = GetVarPaths()
+    
+    # Get all global variables and constants
+    GlobalVars, GlobalConsts = GetGlobalVars()
 
     # Get alarms from global types
     Alarms = GetTypAlarms()
