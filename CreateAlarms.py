@@ -105,6 +105,8 @@ PATTERN_VARIABLE = r"([a-zA-Z0-9_]+)\s{0,}:\s{0,}(\{REDUND_UNREPLICABLE\}){0,1}\
     # 3. Value
 PATTERN_CONSTANT = r"([a-zA-Z0-9_]+)\s{0,}:\s{0,}([a-zA-Z0-9_]+)\s{0,}:=\s{0,}([^;]+);"
 
+    # Matches inner constants in constants value, returns 1 group:
+    # 1. Inner constant name
 PATTERN_CONSTANT_VALUE = r"([a-zA-Z][a-zA-Z0-9_]{0,})"
 
 #####################################################################################################################################################
