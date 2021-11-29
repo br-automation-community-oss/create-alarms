@@ -280,12 +280,21 @@ def GetConstsValue(Consts):
         except:
             NotDoneConsts.append(Const)
     if NotDoneConsts != []:
+        FoundZeroDoneConstants = True
         for Index, Const in enumerate(NotDoneConsts):
             InnerConsts = re.findall(PATTERN_CONSTANT_VALUE, Const["Value"])
             for InnerConst in InnerConsts:
                 if InnerConst in DoneConstsName:
+                    FoundZeroDoneConstants = False
                     # Consts[Find index of Const with Name in NotDoneConsts[Index]["Name"]]["Value"] = replace all InnerConst by values
                     Consts[next((index for (index, d) in enumerate(Consts) if d["Name"] == NotDoneConsts[Index]["Name"]), None)]["Value"] = re.sub(r"\b%s\b" % InnerConst, str(DoneConstsValue[DoneConstsName.index(InnerConst)]), NotDoneConsts[Index]["Value"])
+        if FoundZeroDoneConstants:
+            for NotDoneConst in NotDoneConsts:
+                InnerConsts = re.findall(PATTERN_CONSTANT_VALUE, NotDoneConst["Value"])
+                for InnerConst in InnerConsts:
+                    if next((index for (index, d) in enumerate(NotDoneConsts) if d["Name"] == InnerConst), None) == None:
+                        print("Error: Constant " + InnerConst + " cannot be found.")
+            TerminateScript()
         GetConstsValue(Consts)
         return Consts
     else:
