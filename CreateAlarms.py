@@ -7,6 +7,7 @@
 # Nahradit TaskName -> VariableName
 # Doplnit zbyvajici properties
 # Pridat podporu pro pole
+# AlarmsCfg se najde i v jiné conf
 
 #####################################################################################################################################################
 # Dependencies
@@ -70,12 +71,30 @@ PROPERTIES = {"Code": {"Tag": "Property", "ID": "Code", "Validity": RANGE_UDINT}
     # 1. Name of the structure
     # 2. Structure suffix (Error, Info, Warning)
     # 3. Members of the structure
-PATTERN_STRUCTURE = r"g([a-zA-Z0-9]{1,10})(Error|Info|Warning)Type[^\n]+\n([\s\S]*?)END_STRUCT"
+PATTERN_STRUCTURE_TO_DELETE = r"g([a-zA-Z0-9]{1,10})(Error|Info|Warning)Type\s{0,}:[^\n]+\n([\s\S]*?)END_STRUCT"
 
     # Matches BOOL structure members with Description[2] filled in, returns 2 groups:
     # 1. Name of the member
     # 2. Content of Description[2]
-PATTERN_MEMBER = r"([a-zA-Z0-9_]{1,32}).*?BOOL[\s;]*?\(\*.*?\*\)\s*?\(\*(.+?)\*\)\s*?(?:\(.*?)?[ ]*?\n"
+PATTERN_MEMBER_TO_DELETE = r"([a-zA-Z0-9_]{1,32}).*?BOOL[\s;]*?\(\*.*?\*\)\s*?\(\*(.+?)\*\)\s*?(?:\(.*?)?[ ]*?\n"
+
+    # Matches structure definition, returns 2 groups:
+    # 1. Name of the structure
+    # 2. Members of the structure
+PATTERN_STRUCTURE = r"([a-zA-Z0-9]{1,32})\s{0,}:\s{0,}STRUCT[^\n]{0,}\n([\s\S]*?)\s{0,}END_STRUCT"
+
+    # Matches type members structure definition, returns 10 groups:
+    # 1. Name of array variables
+    # 2. Start value of array
+    # 3. End value of array
+    # 4. Type of array variables
+    # 5. Descriptions 1 and 2 of array variables
+    # 6. Description 2 of array variables
+    # 7. Name of non array variables
+    # 8. Type of non array variables
+    # 9. Descriptions 1 and 2 of non array variables
+    # 10. Description 2 of non array variables
+PATTERN_MEMBER = r"([a-zA-Z0-9_]{1,32}).*?ARRAY\[([a-zA-Z0-9_-]+)..([a-zA-Z0-9_-]+)\]\s{0,}OF\s{0,}([a-zA-Z0-9_]+)\s{0,};\s{0,}(\(\*.*?\*\)\s*?\(\*(.+?)\*\)\s*?)?\n{0,1}|([a-zA-Z0-9_]{1,32}).*?([a-zA-Z0-9_]{1,32})\s{0,};\s{0,}(\(\*.*?\*\)\s*?\(\*(.+?)\*\)\s*?)?\n{0,1}"
 
     # Matches Key=Value pairs, returns 2 groups:
     # 1. Key
@@ -188,38 +207,38 @@ def GetLogicalPath():
         LogicalPath = LogicalPath[:LogicalPath.find("Logical") + 7]
     return LogicalPath
 
-# Get all variable paths excluding private var files and var files from Libraries
-def GetVarPaths():
-    # Get path to all .var files
-    VarPaths = FindFilePath(LogicalPath, "*.var", True)
+# Get all global paths excluding private files and files from Libraries
+def GetGlobalPaths(Extension):
+    # Get path to all .Extension files
+    GlobalPaths = FindFilePath(LogicalPath, "*." + Extension, True)
 
-    # Remove undesirable var files
+    # Remove undesirable Extension files
     PathsToRemove = []
-    for VarPath in VarPaths:
-        VarName = os.path.basename(VarPath)
-        VarDir = os.path.dirname(VarPath)
+    for GlobalPath in GlobalPaths:
+        FileName = os.path.basename(GlobalPath)
+        DirName = os.path.dirname(GlobalPath)
 
-        # Remove all "Libraries" variable files
-        if "Libraries" in VarPath:
-            PathsToRemove.append(VarPath)
+        # Remove all "Libraries" files
+        if "Libraries" in GlobalPath:
+            PathsToRemove.append(GlobalPath)
 
-        # Remove all Private variable files
-        elif os.path.isfile(os.path.join(VarDir, "Package.pkg")):
-            PkgPath = os.path.join(VarDir, "Package.pkg")
+        # Remove all Private files
+        elif os.path.isfile(os.path.join(DirName, "Package.pkg")):
+            PkgPath = os.path.join(DirName, "Package.pkg")
             PkgFile = open(PkgPath, "r")
             for Line in PkgFile:
-                if (VarName in Line) and ("Private=\"true\"" in Line):
-                    PathsToRemove.append(VarPath)
+                if (FileName in Line) and ("Private=\"true\"" in Line):
+                    PathsToRemove.append(GlobalPath)
         else:
-            PathsToRemove.append(VarPath)
+            PathsToRemove.append(GlobalPath)
 
-    VarPaths = list(set(VarPaths) - set(PathsToRemove))
-    DebugPrint("All valid .var files", VarPaths)
+    GlobalPaths = list(set(GlobalPaths) - set(PathsToRemove))
+    DebugPrint("All valid ." + Extension + " files", GlobalPaths)
 
-    return VarPaths
+    return GlobalPaths
 
 # Get all global variables from VarPaths
-def GetGlobalVars():
+def GetGlobalVars(VarPaths):
     """
     Parses variables and constants from all valid global .var files.
 
@@ -260,11 +279,42 @@ def GetGlobalVars():
                         GlobalConsts.append({"Name":Var[0], "Type":Var[1], "Value": Var[2]})
     
     GlobalConsts = GetConstsValue(GlobalConsts)
-    ReplaceConstsByNums(GlobalVars, GlobalConsts)
-    DebugPrint("Global variables", GlobalVars)
+    GlobalVars = ReplaceConstsByNums(GlobalVars, GlobalConsts)
     DebugPrint("Global constants", GlobalConsts)
+    DebugPrint("Global variables", GlobalVars)
 
     return GlobalVars, GlobalConsts
+
+# Parse global types
+def GetGlobalTypes(TypePaths, GlobalConsts):
+    """
+    Parses types from all valid global .typ files.
+
+    GlobalTypes [{{
+        Name: ""
+        Type: ""
+        Array: [Start, End]
+        Description2: ""
+        ParentType: ""
+    }]
+    """
+    GlobalTypes = []
+    for TypePath in TypePaths:
+        TypeFile = open(TypePath, "r")
+        TypeText = TypeFile.read()
+        TypeFile.close()
+        TypeStructures = re.findall(PATTERN_STRUCTURE, TypeText)
+        for TypeStructure in TypeStructures:
+            Members = re.findall(PATTERN_MEMBER, TypeStructure[1])
+            for Member in Members:
+                if Member[0] != '':
+                    GlobalTypes.append({"Name": Member[0], "Type": Member[3], "Array": [Member[1], Member[2]], "Description2": Member[5], "ParentType": TypeStructure[0]})
+                else:
+                    GlobalTypes.append({"Name": Member[6], "Type": Member[7], "Array": None, "Description2": Member[9], "ParentType": TypeStructure[0]})
+        GlobalTypes = ReplaceConstsByNums(GlobalTypes, GlobalConsts)
+    DebugPrint("Global types", GlobalTypes)
+
+    return GlobalTypes
 
 # Get value of all constants
 def GetConstsValue(Consts):
@@ -300,20 +350,119 @@ def GetConstsValue(Consts):
     else:
         return Consts
 
-# Replace global vars constant defined arrays by numbers
-def ReplaceConstsByNums(GlobalVars, GlobalConsts):
-    for Index, GlobalVar in enumerate(GlobalVars):
-        if GlobalVar["Array"] != None:
+# Replace list["Array"] defined with onstants by numbers and convert strings to ints
+def ReplaceConstsByNums(List, GlobalConsts):
+    for Index, Member in enumerate(List):
+        if Member["Array"] != None:
             for i in (0,1):
                 try:
-                    GlobalVars[Index]["Array"][i] = int(GlobalVar["Array"][i])
+                    List[Index]["Array"][i] = int(Member["Array"][i])
                 except:
                     try:
-                        GlobalVars[Index]["Array"][i] = GlobalConsts[next((index for (index, d) in enumerate(GlobalConsts) if d["Name"] == GlobalVar["Array"][i]), None)]["Value"]
+                        List[Index]["Array"][i] = GlobalConsts[next((index for (index, d) in enumerate(GlobalConsts) if d["Name"] == Member["Array"][i]), None)]["Value"]
                     except:
-                        print("Error: Constant " + GlobalVar["Array"][i] + " in array of variable " + GlobalVar["Name"] + " cannot be found.")
+                        print("Error: Constant " + Member["Array"][i] + " in array of variable " + Member["Name"] + " cannot be found.")
                         TerminateScript()
-    return GlobalVars
+    return List
+
+# Walk through all variables and create list of alarms
+def GetAlarms():
+    """
+    Gets Alarm list from all variables and types
+
+    Alarms [{
+        Variable: ""
+        Array: [Start, End]
+        Path: [{
+            Name: ""
+            Type: ""
+            Array: [Start, End]
+            Description2: ""
+            ParentType: ""
+        }]
+        Severity: ""
+        Properties: [{
+                Key: ""
+                Value: ""
+                Valid: False/True
+                Tag: ""
+        }]
+    }]
+    """
+    sys.setrecursionlimit(100)
+    # Get all valid var and type files
+    VarPaths = GetGlobalPaths("var")
+    TypePaths = GetGlobalPaths("typ")
+
+    # Get all global variables, constants and types
+    GlobalVars, GlobalConsts = GetGlobalVars(VarPaths)
+    GlobalTypes = GetGlobalTypes(TypePaths, GlobalConsts)
+
+    AlarmTypes = []
+    for GlobalType in GlobalTypes:
+        if ("Error" in GlobalType["ParentType"]) or ("Warning" in GlobalType["ParentType"]) or ("Info" in GlobalType["ParentType"]):
+            AlarmTypes.append(GlobalType["ParentType"])
+    AlarmPaths = []
+    GetPaths(AlarmTypes, GlobalTypes, AlarmPaths, True)
+    for AlarmPath in AlarmPaths:
+        AlarmPath.reverse()
+
+    if UserData["Debug"]:
+        print("Paths to alarm types:")
+        for AlarmPath in AlarmPaths:
+            Path = ""
+            for PathMember in AlarmPath:
+                if PathMember["Array"] != None:
+                    Path += " > " + PathMember["Name"] + str(PathMember["Array"])
+                else:
+                    Path += " > " + PathMember["Name"]
+            print(Path)
+        print("Number of paths: " + str(len(AlarmPaths)))
+        print("\n")
+
+def GetPaths(AlarmTypes, GlobalTypes, AlarmPaths, FirstTime, Nesting = 0):
+    Nesting += 1
+    if Nesting >= UserData["MaxNesting"]:
+        print("Warning: Recursive nesting in data types.")
+        TerminateScript()
+    Types = []
+    AlarmTypes = list(set(AlarmTypes))
+    for GlobalType in GlobalTypes:
+        if GlobalType["Type"] in AlarmTypes:
+            Types.append(GlobalType["ParentType"])
+            if FirstTime:
+                AlarmPaths.append([GlobalType])
+            else:
+                HelpAlarmPaths = []
+                for IndexPath, AlarmPath in enumerate(AlarmPaths):
+                    for IndexMember, PathMember in enumerate(AlarmPath):
+                        if PathMember["ParentType"] == GlobalType["Type"]:
+                            if IndexMember == (len(AlarmPaths[IndexPath]) - 1):
+                                AlarmPaths[IndexPath].append(GlobalType)
+                            else:
+                                HelpList = AlarmPaths[IndexPath][:IndexMember + 1]
+                                HelpList.append(GlobalType)
+                                DoNotAppend = False
+                                for Path in AlarmPaths:
+                                    if HelpList == Path[:IndexMember+2]:
+                                        DoNotAppend = True
+                                        break
+                                if not DoNotAppend:
+                                    if HelpAlarmPaths == []:
+                                        HelpAlarmPaths.append(HelpList)
+                                    else:
+                                        DoNotAppend = False
+                                        for HelpPath in HelpAlarmPaths:
+                                            if HelpList == HelpPath:
+                                                DoNotAppend = True
+                                                break
+                                        if not DoNotAppend:
+                                            HelpAlarmPaths.append(HelpList)
+                if HelpAlarmPaths != []:
+                    for HelpPath in HelpAlarmPaths:
+                        AlarmPaths.append(HelpPath)
+    if Types != []:
+        GetPaths(Types, GlobalTypes, AlarmPaths, False, Nesting)
 
 # Get alarms
 def GetTypAlarms():
@@ -330,11 +479,11 @@ def GetTypAlarms():
     #####################################################################################################################################################
     # Parse data from Global.typ file
     #####################################################################################################################################################
-    Alarms = GetAlarms(TypContent)
+    Alarms = GetAlarmsToDelete(TypContent)
     return Alarms
 
 # Parse TYP file and return list of alarms
-def GetAlarms(Input: str) -> list:
+def GetAlarmsToDelete(Input: str) -> list:
     """
     Parses Input string and returns list of Alarms.
 
@@ -353,9 +502,9 @@ def GetAlarms(Input: str) -> list:
     }
     """
     Alarms = []
-    Structures = re.findall(PATTERN_STRUCTURE, Input)
+    Structures = re.findall(PATTERN_STRUCTURE_TO_DELETE, Input)
     for Structure in Structures:
-        Members = re.findall(PATTERN_MEMBER, Structure[2])
+        Members = re.findall(PATTERN_MEMBER_TO_DELETE, Structure[2])
         for Member in Members:
             Pairs = re.findall(PATTERN_PAIR, Member[1])
             Properties = []
@@ -1148,28 +1297,24 @@ if not RunMode == MODE_ERROR:
         with open(UserDataPath, "rb") as CreateAlarmsSettings:
             UserData = pickle.load(CreateAlarmsSettings)
     except:
-        UserData = {"Configuration":"", "Debug": False, "UpdateTmx": True, "UpdateMpConfig": True, "UpdateProgram": True, "TmxName": "Alarms", "MpConfigName": "AlarmsCfg", "ProgramName": "Alarms"}
+        UserData = {"Configuration":"", "Debug": False, "UpdateTmx": True, "UpdateMpConfig": True, "UpdateProgram": True, "TmxName": "Alarms", "MpConfigName": "AlarmsCfg", "ProgramName": "Alarms", "MaxNesting": 15}
 
-    if (len(UserData) != 8):
-        UserData = {"Configuration":"", "Debug": False, "UpdateTmx": True, "UpdateMpConfig": True, "UpdateProgram": True, "TmxName": "Alarms", "MpConfigName": "AlarmsCfg", "ProgramName": "Alarms"}
+    if (len(UserData) != 9):
+        UserData = {"Configuration":"", "Debug": False, "UpdateTmx": True, "UpdateMpConfig": True, "UpdateProgram": True, "TmxName": "Alarms", "MpConfigName": "AlarmsCfg", "ProgramName": "Alarms", "MaxNesting": 15}
 
 # Run respective script mode
 if RunMode == MODE_PREBUILD:
     
     # Ouput window message
     print("----------------------------- Beginning of the script CreateAlarms -----------------------------")
-
-    # Get all valid var files
-    VarPaths = GetVarPaths()
-    
-    # Get all global variables and constants
-    GlobalVars, GlobalConsts = GetGlobalVars()
+ 
+    MyAlarms = GetAlarms()
 
     # Get alarms from global types
     Alarms = GetTypAlarms()
 
     Prebuild()
-    
+
     # Ouput window message
     print("--------------------------------- End of the script CreateAlarms ---------------------------------")
 
