@@ -266,14 +266,8 @@ def GetAlarms():
         for Index, Alarm in enumerate(Alarms):
             Path = ""
             for PathMember in Alarm["Path"]:
-                if PathMember["Array"] != None:
-                    Path += PathMember["Name"] + str(PathMember["Array"]) + " > "
-                else:
-                    Path += PathMember["Name"] + " > "
-            if Alarm["Array"] != None:
-                Path += Alarm["Variable"] + str(Alarm["Array"])
-            else:
-                Path += Alarm["Variable"]
+                Path += PathMember["Name"] + str(PathMember["Array"]) + " > "
+            Path += Alarm["Variable"] + str(Alarm["Array"])
             print(str(Index + 1) + ": " + str(Path))
         print("\n")
 
@@ -344,7 +338,7 @@ def GetGlobalVars(VarPaths):
                     Vars = re.findall(PATTERN_VARIABLE, VarStructure[2])
                 for Var in Vars:
                     if Var[0] != '':
-                        GlobalVars.append({"Name":Var[0], "Type":Var[2], "Array": None})
+                        GlobalVars.append({"Name":Var[0], "Type":Var[2], "Array": ""})
                     elif Var[3] != '':
                         GlobalVars.append({"Name":Var[3], "Type":Var[6], "Array": [Var[4], Var[5]]})
             elif VarStructure[1] != '':
@@ -385,7 +379,7 @@ def GetGlobalTypes(TypePaths, GlobalConsts):
                 if Member[0] != '':
                     GlobalTypes.append({"Name": Member[0], "Type": Member[3], "Array": [Member[1], Member[2]], "Description2": Member[5], "ParentType": TypeStructure[0]})
                 else:
-                    GlobalTypes.append({"Name": Member[6], "Type": Member[7], "Array": None, "Description2": Member[9], "ParentType": TypeStructure[0]})
+                    GlobalTypes.append({"Name": Member[6], "Type": Member[7], "Array": "", "Description2": Member[9], "ParentType": TypeStructure[0]})
         GlobalTypes = ReplaceConstsByNums(GlobalTypes, GlobalConsts)
     DebugPrint("Global types", GlobalTypes)
 
@@ -428,7 +422,7 @@ def GetConstsValue(Consts):
 # Replace list["Array"] defined with onstants by numbers and convert strings to ints
 def ReplaceConstsByNums(List, GlobalConsts):
     for Index, Member in enumerate(List):
-        if Member["Array"] != None:
+        if Member["Array"] != "":
             for i in (0,1):
                 try:
                     List[Index]["Array"][i] = int(Member["Array"][i])
@@ -678,6 +672,34 @@ def Prebuild():
     # Update program file
     if UserData["UpdateProgram"]: UpdateProgram()
 
+# Creates all paths to one alarm
+def CreateNames(Alarm):
+    Names = [""]
+    FirstTime = True
+    for PathMember in Alarm["Path"]:
+        for Index, Name in enumerate(Names):
+            if FirstTime:
+                Names[Index] += PathMember["Name"]
+                FirstTime = False
+            else:
+                Names[Index] += "." + PathMember["Name"]
+        if PathMember["Array"] != "":
+            Names = CreateArrays(Names, PathMember["Array"])
+    for Index, Name in enumerate(Names):
+        Names[Index] += "." + Alarm["Variable"]
+    if Alarm["Array"] != "":
+        Names = CreateArrays(Names, Alarm["Array"])
+    print("\n" + str(Names))
+    return Names
+
+# Expand paths with arrays
+def CreateArrays(Names, Array):
+    NewNames = []
+    for Name in Names:
+        for IndexArray in range(Array[0] - 1, Array[1]):
+            NewNames.append(Name + "[" + str(IndexArray + 1) + "]")
+    return NewNames
+
 # Update TMX file
 def UpdateTmx():
     #####################################################################################################################################################
@@ -702,7 +724,10 @@ def UpdateTmx():
     # Get alarm names list from Global.typ file
     TypAlarms = []
     for Alarm in Alarms:
-        TypAlarms.append("g" + Alarm["Task"] + "." + Alarm["Type"] + "." + Alarm["Name"])
+        Names = CreateNames(Alarm)
+        
+
+    TypAlarms.append(Alarm["Variable"] + "." + Alarm["Type"] + "." + Alarm["Name"])
 
     DebugPrint("Typ alarms", TypAlarms)
 
@@ -1338,7 +1363,7 @@ if RunMode == MODE_PREBUILD:
     
     # Ouput window message
     print("----------------------------- Beginning of the script CreateAlarms -----------------------------")
-    
+
     # Get alarms from global variables and types
     Alarms = GetAlarms()
 
