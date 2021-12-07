@@ -264,11 +264,7 @@ def GetAlarms():
     if UserData["Debug"]:
         print("Paths to alarms:")
         for Index, Alarm in enumerate(Alarms):
-            Path = ""
-            for PathMember in Alarm["Path"]:
-                Path += PathMember["Name"] + str(PathMember["Array"]) + " > "
-            Path += Alarm["Variable"] + str(Alarm["Array"])
-            print(str(Index + 1) + ": " + str(Path))
+			print(str(Index + 1) + ": " + str(PathToAlarm(Alarm)))
         print("\n")
 
     # Parse properties of alarms
