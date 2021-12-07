@@ -1,7 +1,7 @@
 #   Copyright:  B&R Industrial Automation
 #   Authors:    Adam Sefranek, Michal Vavrik
 #   Created:	Oct 26, 2021 1:36 PM
-#   Version:	1.3.0
+#   Version:	2.0.0
 
 # TODO
 # Nahradit TaskName -> VariableName
@@ -81,7 +81,7 @@ PATTERN_MEMBER_TO_DELETE = r"([a-zA-Z0-9_]{1,32}).*?BOOL[\s;]*?\(\*.*?\*\)\s*?\(
     # Matches structure definition, returns 2 groups:
     # 1. Name of the structure
     # 2. Members of the structure
-PATTERN_STRUCTURE = r"([a-zA-Z0-9]{1,32})\s{0,}:\s{0,}STRUCT[^\n]{0,}\n([\s\S]*?)\s{0,}END_STRUCT"
+PATTERN_STRUCTURE = r"([a-zA-Z0-9_]{1,32})\s{0,}:\s{0,}STRUCT[^\n]{0,}\n([\s\S]*?)\s{0,}END_STRUCT"
 
     # Matches type members structure definition, returns 10 groups:
     # 1. Name of array variables
@@ -207,6 +207,81 @@ def GetLogicalPath():
         LogicalPath = LogicalPath[:LogicalPath.find("Logical") + 7]
     return LogicalPath
 
+# Walk through all variables and data types and create list of alarms
+def GetAlarms():
+    """
+    Gets Alarm list from all variables and types
+
+    Alarms [{
+        Variable: ""
+        Array: [Start, End]
+        Path: [{
+            Name: ""
+            Type: ""
+            Array: [Start, End]
+            Description2: ""
+            ParentType: ""
+        }]
+        Severity: ""
+        Properties: [{
+                Key: ""
+                Value: ""
+                Valid: False/True
+                Tag: ""
+        }]
+    }]
+    """
+
+    # Get all valid var and type files
+    VarPaths = GetGlobalPaths("var")
+    TypePaths = GetGlobalPaths("typ")
+
+    # Get all global variables, constants and types
+    GlobalVars, GlobalConsts = GetGlobalVars(VarPaths)
+    GlobalTypes = GetGlobalTypes(TypePaths, GlobalConsts)
+
+    # Look for all types with Error/Warning/Info in name
+    AlarmTypes = []
+    for GlobalType in GlobalTypes:
+        if ("Error" in GlobalType["ParentType"]) or ("Warning" in GlobalType["ParentType"]) or ("Info" in GlobalType["ParentType"]):
+            AlarmTypes.append(GlobalType["ParentType"])
+    
+    # Generate all alarm paths
+    AlarmPaths = []
+    GetPaths(AlarmTypes, GlobalTypes, AlarmPaths, True)
+    for AlarmPath in AlarmPaths:
+        AlarmPath.reverse()
+
+    # Add global variables to alarm paths
+    AlarmPaths = AddVarsToPaths(GlobalVars, AlarmPaths)
+
+    # Create alarm list
+    Alarms = CreateAlarms(GlobalTypes, AlarmPaths)
+
+    DebugPrint("Alarms", Alarms)
+
+    # Alarm paths print
+    if UserData["Debug"]:
+        print("Paths to alarms:")
+        for Index, Alarm in enumerate(Alarms):
+            Path = ""
+            for PathMember in Alarm["Path"]:
+                if PathMember["Array"] != None:
+                    Path += PathMember["Name"] + str(PathMember["Array"]) + " > "
+                else:
+                    Path += PathMember["Name"] + " > "
+            if Alarm["Array"] != None:
+                Path += Alarm["Variable"] + str(Alarm["Array"])
+            else:
+                Path += Alarm["Variable"]
+            print(str(Index + 1) + ": " + str(Path))
+        print("\n")
+
+    # Parse properties of alarms
+    Alarms = ParseProperties(Alarms)
+
+    return Alarms
+
 # Get all global paths excluding private files and files from Libraries
 def GetGlobalPaths(Extension):
     # Get path to all .Extension files
@@ -290,7 +365,7 @@ def GetGlobalTypes(TypePaths, GlobalConsts):
     """
     Parses types from all valid global .typ files.
 
-    GlobalTypes [{{
+    GlobalTypes [{
         Name: ""
         Type: ""
         Array: [Start, End]
@@ -365,61 +440,7 @@ def ReplaceConstsByNums(List, GlobalConsts):
                         TerminateScript()
     return List
 
-# Walk through all variables and create list of alarms
-def GetAlarms():
-    """
-    Gets Alarm list from all variables and types
-
-    Alarms [{
-        Variable: ""
-        Array: [Start, End]
-        Path: [{
-            Name: ""
-            Type: ""
-            Array: [Start, End]
-            Description2: ""
-            ParentType: ""
-        }]
-        Severity: ""
-        Properties: [{
-                Key: ""
-                Value: ""
-                Valid: False/True
-                Tag: ""
-        }]
-    }]
-    """
-    sys.setrecursionlimit(100)
-    # Get all valid var and type files
-    VarPaths = GetGlobalPaths("var")
-    TypePaths = GetGlobalPaths("typ")
-
-    # Get all global variables, constants and types
-    GlobalVars, GlobalConsts = GetGlobalVars(VarPaths)
-    GlobalTypes = GetGlobalTypes(TypePaths, GlobalConsts)
-
-    AlarmTypes = []
-    for GlobalType in GlobalTypes:
-        if ("Error" in GlobalType["ParentType"]) or ("Warning" in GlobalType["ParentType"]) or ("Info" in GlobalType["ParentType"]):
-            AlarmTypes.append(GlobalType["ParentType"])
-    AlarmPaths = []
-    GetPaths(AlarmTypes, GlobalTypes, AlarmPaths, True)
-    for AlarmPath in AlarmPaths:
-        AlarmPath.reverse()
-
-    if UserData["Debug"]:
-        print("Paths to alarm types:")
-        for AlarmPath in AlarmPaths:
-            Path = ""
-            for PathMember in AlarmPath:
-                if PathMember["Array"] != None:
-                    Path += " > " + PathMember["Name"] + str(PathMember["Array"])
-                else:
-                    Path += " > " + PathMember["Name"]
-            print(Path)
-        print("Number of paths: " + str(len(AlarmPaths)))
-        print("\n")
-
+# Get all possible paths to alarm types
 def GetPaths(AlarmTypes, GlobalTypes, AlarmPaths, FirstTime, Nesting = 0):
     Nesting += 1
     if Nesting >= UserData["MaxNesting"]:
@@ -464,26 +485,36 @@ def GetPaths(AlarmTypes, GlobalTypes, AlarmPaths, FirstTime, Nesting = 0):
     if Types != []:
         GetPaths(Types, GlobalTypes, AlarmPaths, False, Nesting)
 
-# Get alarms
-def GetTypAlarms():
-    #####################################################################################################################################################
-    # Open Global.typ file
-    #####################################################################################################################################################
-    TypPath = os.path.join(LogicalPath, "Global.typ")
-    IsFile(TypPath)
+# Add global variables to the beginning of the paths
+def AddVarsToPaths(GlobalVars, AlarmPaths):
+    ExtendedPaths = []
+    for GlobalVar in GlobalVars:
+        for AlarmPath in AlarmPaths:
+            for IndexMember, PathMember in enumerate(AlarmPath):
+                if GlobalVar["Type"] == PathMember["ParentType"]:
+                    HelpPath = AlarmPath[IndexMember:]
+                    HelpPath.insert(0, GlobalVar)
+                    if HelpPath not in ExtendedPaths:
+                        ExtendedPaths.append(HelpPath)
+    return ExtendedPaths
 
-    with open(TypPath, "r") as f:
-        TypContent = f.read()
-        f.close()
-    
-    #####################################################################################################################################################
-    # Parse data from Global.typ file
-    #####################################################################################################################################################
-    Alarms = GetAlarmsToDelete(TypContent)
+# Create alarm list
+def CreateAlarms(GlobalTypes, AlarmPaths):
+    Alarms = []
+    for AlarmPath in AlarmPaths:
+        for GlobalType in GlobalTypes:
+            if (GlobalType["ParentType"] == AlarmPath[-1]["Type"]) and (GlobalType["Type"] == "BOOL"):
+                if ("Error" in GlobalType["ParentType"]):
+                    Severity = "Error"
+                elif ("Warning" in GlobalType["ParentType"]):
+                    Severity = "Warning"
+                elif ("Info" in GlobalType["ParentType"]):
+                    Severity = "Info"
+                Alarms.append({"Variable": GlobalType["Name"], "Array": GlobalType["Array"], "Path": AlarmPath, "Severity": Severity, "Properties": GlobalType["Description2"]})
     return Alarms
 
-# Parse TYP file and return list of alarms
-def GetAlarmsToDelete(Input: str) -> list:
+# Parse properties of alarms
+def ParseProperties(Alarms):
     """
     Parses Input string and returns list of Alarms.
 
@@ -501,28 +532,28 @@ def GetAlarmsToDelete(Input: str) -> list:
         ]
     }
     """
-    Alarms = []
-    Structures = re.findall(PATTERN_STRUCTURE_TO_DELETE, Input)
-    for Structure in Structures:
-        Members = re.findall(PATTERN_MEMBER_TO_DELETE, Structure[2])
-        for Member in Members:
-            Pairs = re.findall(PATTERN_PAIR, Member[1])
-            Properties = []
-            for Pair in Pairs:
-                Key = Pair[0]
-                Value = Pair[1]
-                if Value.startswith("\"") and Value.endswith("\""): Value = Value[1:-1]
-                if Key in PROPERTIES:
-                    if "FALSE" in PROPERTIES[Key]["Validity"]:
-                        Value = Value.upper()
-                    Valid = Validity("g" + Structure[0] + Structure[1] + "Type." + Member[0], Key, Value)
-                    Properties.append({"Key": Key, "Value": Value, "Valid": Valid, "Tag": PROPERTIES[Key]["Tag"], "ID": PROPERTIES[Key]["ID"]})
-                else:
-                    print("Warning: Property '" + Key + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0]+"' is not valid.")
-            if Properties:
-                Properties = sorted(Properties, key=lambda d: d["Key"])
-                Alarms.append({"Task": Structure[0], "Type": Structure[1], "Name": Member[0], "Properties": Properties})
-    DebugPrint("Alarms", Alarms)
+    # Alarms = []
+    # Structures = re.findall(PATTERN_STRUCTURE_TO_DELETE, Input)
+    # for Structure in Structures:
+    #     Members = re.findall(PATTERN_MEMBER_TO_DELETE, Structure[2])
+    #     for Member in Members:
+    #         Pairs = re.findall(PATTERN_PAIR, Member[1])
+    #         Properties = []
+    #         for Pair in Pairs:
+    #             Key = Pair[0]
+    #             Value = Pair[1]
+    #             if Value.startswith("\"") and Value.endswith("\""): Value = Value[1:-1]
+    #             if Key in PROPERTIES:
+    #                 if "FALSE" in PROPERTIES[Key]["Validity"]:
+    #                     Value = Value.upper()
+    #                 Valid = Validity("g" + Structure[0] + Structure[1] + "Type." + Member[0], Key, Value)
+    #                 Properties.append({"Key": Key, "Value": Value, "Valid": Valid, "Tag": PROPERTIES[Key]["Tag"], "ID": PROPERTIES[Key]["ID"]})
+    #             else:
+    #                 print("Warning: Property '" + Key + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0]+"' is not valid.")
+    #         if Properties:
+    #             Properties = sorted(Properties, key=lambda d: d["Key"])
+    #             Alarms.append({"Task": Structure[0], "Type": Structure[1], "Name": Member[0], "Properties": Properties})
+    # DebugPrint("Alarms", Alarms)
     return Alarms
 
 # Check validity of property value
@@ -1164,12 +1195,12 @@ def Configuration():
     FormButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
     # Version label
-    VersionLabel = QLabel("ⓘ v1.3.0", parent=FormButtonBox)
+    VersionLabel = QLabel("ⓘ v2.0.0", parent=FormButtonBox)
     VersionLabel.move(0, 10)
     VersionLabel.setStyleSheet("QLabel{font: 20px \"Bahnschrift SemiLight SemiConde\"; background-color: transparent;} QToolTip{background-color:#eedd22;}")
     VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
-	\nVersion 1.3.0:
-	- 
+	\nVersion 2.0.0:
+	- New system of finding alarms
 	\nVersion 1.2.0:
 	- Configuration of sections to update
 	- Configuration of TMX, MpConfig and program name
@@ -1307,11 +1338,9 @@ if RunMode == MODE_PREBUILD:
     
     # Ouput window message
     print("----------------------------- Beginning of the script CreateAlarms -----------------------------")
- 
-    MyAlarms = GetAlarms()
-
-    # Get alarms from global types
-    Alarms = GetTypAlarms()
+    
+    # Get alarms from global variables and types
+    Alarms = GetAlarms()
 
     Prebuild()
 
