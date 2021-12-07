@@ -580,13 +580,12 @@ def Validity(Name, Key, Value):
     return Valid
 
 # Create alarm groups
-def MpAlarmCreateGroup(Index: int, Alarm: dict) -> et.Element:
+def MpAlarmCreateGroup(Index: int, Name: str, Properties: list) -> et.Element:
     Group = et.Element("Group", {"ID": "["+str(Index)+"]"})
-    Name = "g"+Alarm["Task"]+"."+Alarm["Type"]+"."+Alarm["Name"]
     Message = "{$Alarms/"+Name+"}"
     et.SubElement(Group, "Property", {"ID": "Name", "Value": Name})
     et.SubElement(Group, "Property", {"ID": "Message", "Value": Message})
-    Properties = CreateTreeFromProperties(Alarm["Properties"])
+	Properties = CreateTreeFromProperties(Properties)
     Properties = RemoveInvalidProperties(Properties)
     MpAlarmCreateNodes(Group, Properties)
     return Group
@@ -797,8 +796,11 @@ def UpdateMpalarmxcore():
 
     MpAlarmList = et.Element("Group", {"ID": "mapp.AlarmX.Core.Configuration"})
 
-    for Index, Alarm in enumerate(Alarms):
-        Element = MpAlarmCreateGroup(Index, Alarm)
+	Index = 0
+	for Alarm in Alarms:
+		for Name in CreateNames(Alarm):
+			Element = MpAlarmCreateGroup(Index, Name, Alarm["Properties"])
+			Index += 1
         MpAlarmList.append(Element)
 
     Parent.append(MpAlarmList)
