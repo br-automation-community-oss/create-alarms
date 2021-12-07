@@ -522,28 +522,30 @@ def ParseProperties(Alarms):
         ]
     }
     """
-    # Alarms = []
-    # Structures = re.findall(PATTERN_STRUCTURE_TO_DELETE, Input)
-    # for Structure in Structures:
-    #     Members = re.findall(PATTERN_MEMBER_TO_DELETE, Structure[2])
-    #     for Member in Members:
-    #         Pairs = re.findall(PATTERN_PAIR, Member[1])
-    #         Properties = []
-    #         for Pair in Pairs:
-    #             Key = Pair[0]
-    #             Value = Pair[1]
-    #             if Value.startswith("\"") and Value.endswith("\""): Value = Value[1:-1]
-    #             if Key in PROPERTIES:
-    #                 if "FALSE" in PROPERTIES[Key]["Validity"]:
-    #                     Value = Value.upper()
-    #                 Valid = Validity("g" + Structure[0] + Structure[1] + "Type." + Member[0], Key, Value)
-    #                 Properties.append({"Key": Key, "Value": Value, "Valid": Valid, "Tag": PROPERTIES[Key]["Tag"], "ID": PROPERTIES[Key]["ID"]})
-    #             else:
-    #                 print("Warning: Property '" + Key + "' of member 'g" + Structure[0] + Structure[1] + "Type." + Member[0]+"' is not valid.")
-    #         if Properties:
-    #             Properties = sorted(Properties, key=lambda d: d["Key"])
-    #             Alarms.append({"Task": Structure[0], "Type": Structure[1], "Name": Member[0], "Properties": Properties})
-    # DebugPrint("Alarms", Alarms)
+	for Member in Alarms:
+		Pairs = re.findall(PATTERN_PAIR, Member["Properties"])
+		Properties = []
+
+		for Pair in Pairs:
+			Key = Pair[0]
+			Value = Pair[1]
+			
+			if Value.startswith("\"") and Value.endswith("\""): 
+				Value = Value[1:-1]
+			
+			if Key in PROPERTIES:
+				if "FALSE" in PROPERTIES[Key]["Validity"]:
+					Value = Value.upper()
+				Valid = Validity(Member["Variable"], Key, Value)
+				Properties.append({"Key": Key, "Value": Value, "Valid": Valid, "Tag": PROPERTIES[Key]["Tag"], "ID": PROPERTIES[Key]["ID"]})
+			else:
+				print("Warning: Property '" + Key + "' of member '" + PathToAlarm(Member) +"' is not valid.")
+
+		if Properties:
+			Properties = sorted(Properties, key=lambda d: d["Key"])
+			Member["Properties"] = Properties
+	
+	DebugPrint("Alarms", Alarms)
     return Alarms
 
 # Check validity of property value
@@ -695,6 +697,14 @@ def CreateArrays(Names, Array):
         for IndexArray in range(Array[0] - 1, Array[1]):
             NewNames.append(Name + "[" + str(IndexArray + 1) + "]")
     return NewNames
+
+# Return path to alarm with array ranges
+def PathToAlarm(Alarm) -> str:
+	Path = ""
+	for PathMember in Alarm["Path"]:
+		Path += PathMember["Name"] + str(PathMember["Array"]) + " > "
+	Path += Alarm["Variable"] + str(Alarm["Array"])
+	return Path
 
 # Update TMX file
 def UpdateTmx():
