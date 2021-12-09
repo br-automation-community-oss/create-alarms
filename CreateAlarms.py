@@ -6,6 +6,7 @@
 # TODO
 # Doplnit zbyvajici properties
 # AlarmsCfg se najde i v jiné conf (potřebuju otestovat)
+# Lépe organizovat SetReset alarmů v poli: společné FORy, kde to jde + Flagy pro struktury
 
 #####################################################################################################################################################
 # Dependencies
@@ -625,8 +626,6 @@ def AlarmSetReset(SetResetText, Alarm, ProgramLanguage):
 	NumberOfForLoops = 0
 	for IndexMember, PathMember in enumerate(Alarm["Path"]):
 		AlarmName += PathMember["Name"]
-		if (IndexMember + 1) == len(Alarm["Path"]):
-			AlarmPath = AlarmName
 		if PathMember["Array"] != "":
 			NumberOfForLoops += 1
 			ConfigNameCreation.append("\nbrsstrcat(ADR(Name), ADR('" + PathMember["Name"] + "['));")
@@ -690,6 +689,7 @@ def AlarmSetReset(SetResetText, Alarm, ProgramLanguage):
 		SetResetText += Tabs + "IF (" + AlarmName + " < Flag." + AlarmName + ") THEN"
 		SetResetText += Tabs + "\tMpAlarmXReset(gAlarmXCore, '" + AlarmName + "');"
 	SetResetText += Tabs + "END_IF;"
+	SetResetText += Tabs + "Flag." + AlarmName + "\t:= " + AlarmName + ";"
 
 	for Index in range(NumberOfForLoops):
 		Tabs = Tabs[:-1]
@@ -699,7 +699,7 @@ def AlarmSetReset(SetResetText, Alarm, ProgramLanguage):
 	# Convert ST to C
 	if ProgramLanguage == LANGUAGE_C:
 		# FOR replacement
-		SetResetText = re.sub("([\t]*)FOR ([a-zA-Z0-9_]*) := ([0-9]*) TO ([0-9]*) DO", r"\1for (\2 = \3; \2 < \4; \2++)\n\1{", SetResetText)
+		SetResetText = re.sub("([\t]*)FOR ([a-zA-Z0-9_]*) := ([0-9]*) TO ([0-9]*) DO", r"\1for (\2 = \3; \2 <= \4; \2++)\n\1{", SetResetText)
 		# IF replacement
 		SetResetText = re.sub("([\t]*)IF \(([a-zA-Z0-9_.\[\]]*) ([<>=]*) ([a-zA-Z0-9_.\[\]]*)\) THEN", r"\1if (\2 \3 \4)\n\1{", SetResetText)
 		SetResetText = re.sub("END_[a-zA-Z0-9_]*;", "}", SetResetText)
@@ -707,13 +707,13 @@ def AlarmSetReset(SetResetText, Alarm, ProgramLanguage):
 		SetResetText = re.sub("([\t]*)ELSE", r"\1}\n\1else\n\1{", SetResetText)
 		# Other
 		SetResetText = SetResetText.replace("'", "\"")
-		SetResetText = SetResetText.replace(" := ", " = ")
+		SetResetText = SetResetText.replace(":= ", "= ")
 		SetResetText = SetResetText.replace("<>", "!=")
 		SetResetText = SetResetText.replace("(gAlarmXCore", "(&gAlarmXCore")
 		SetResetText = SetResetText.replace("ADR", "(UDINT)&")
 		SetResetText = SetResetText.replace("SIZEOF", "sizeof")
 
-	return SetResetText, AlarmPath, NumberOfForLoops
+	return SetResetText, NumberOfForLoops
 
 # Prebuild mode function
 def Prebuild():
@@ -894,12 +894,10 @@ def UpdateProgram():
 		ProgramErrorText = "\t/************************************************************** Errors *************************************************************/"
 		ProgramWarningText = "\n\t\n\t/************************************************************* Warnings ************************************************************/"
 		ProgramInfoText = "\n\t\n\t/************************************************************** Infos **************************************************************/"
-		FlagsText = "\n\t\n\t/********************************************************** Flags handling *********************************************************/"
 	elif ProgramLanguage == LANGUAGE_ST:
 		ProgramErrorText = "\t(************************************************************** Errors *************************************************************)"
 		ProgramWarningText = "\n\t\n\t(************************************************************* Warnings ************************************************************)"
 		ProgramInfoText = "\n\t\n\t(************************************************************** Infos **************************************************************)"
-		FlagsText = "\n\t\n\t(********************************************************** Flags handling *********************************************************)"
 
 	MaxNumberOfForLoops = 0
 	for ProgramLine in ProgramFile:
@@ -918,31 +916,24 @@ def UpdateProgram():
 				if not SetResetNotValid:
 					if Alarm["Severity"] == "Error":
 						if not(ErrorLastVariableName == Alarm["Path"][0]["Name"]):
-							ProgramErrorText += "\n\t\n\t// Global variable " + Alarm["Path"][0]["Name"]
-						ProgramErrorText, AlarmPath, NumberOfForLoops = AlarmSetReset(ProgramErrorText, Alarm, ProgramLanguage)
+							ProgramErrorText += "\n\t// Global variable " + Alarm["Path"][0]["Name"]
+						ProgramErrorText, NumberOfForLoops = AlarmSetReset(ProgramErrorText, Alarm, ProgramLanguage)
 						ErrorLastVariableName = Alarm["Path"][0]["Name"]
 					elif Alarm["Severity"] == "Warning":
 						if not(WarningLastVariableName == Alarm["Path"][0]["Name"]):
-							ProgramWarningText += "\n\t\n\t// Global variable " + Alarm["Path"][0]["Name"]
-						ProgramWarningText, AlarmPath, NumberOfForLoops = AlarmSetReset(ProgramWarningText, Alarm, ProgramLanguage)
+							ProgramWarningText += "\n\t// Global variable " + Alarm["Path"][0]["Name"]
+						ProgramWarningText, NumberOfForLoops = AlarmSetReset(ProgramWarningText, Alarm, ProgramLanguage)
 						WarningLastVariableName = Alarm["Path"][0]["Name"]
 					elif Alarm["Severity"] == "Info":
 						if not(InfoLastVariableName == Alarm["Path"][0]["Name"]):
-							ProgramInfoText += "\n\t\n\t// Global variable " + Alarm["Path"][0]["Name"]
-						ProgramInfoText, AlarmPath, NumberOfForLoops = AlarmSetReset(ProgramInfoText, Alarm, ProgramLanguage)
+							ProgramInfoText += "\n\t// Global variable " + Alarm["Path"][0]["Name"]
+						ProgramInfoText, NumberOfForLoops = AlarmSetReset(ProgramInfoText, Alarm, ProgramLanguage)
 						InfoLastVariableName = Alarm["Path"][0]["Name"]
 					
 					if NumberOfForLoops > MaxNumberOfForLoops:
 						MaxNumberOfForLoops = NumberOfForLoops
 
-					if not AlarmPath in FlagsText:
-						if ProgramLanguage == LANGUAGE_C:
-							FlagsText += "\n\tbrsmemset((UDINT)&(Flag." + AlarmPath + "), 0, sizeof(Flag." + AlarmPath + "));"
-							FlagsText += "\n\tbrsmemcpy((UDINT)&(Flag." + AlarmPath + "), (UDINT)&(" + AlarmPath + "), sizeof(Flag." + AlarmPath + "));"
-						elif ProgramLanguage == LANGUAGE_ST:
-							FlagsText += "\n\tFlag." + AlarmPath + "\t:= " + AlarmPath + ";"
-
-			ProgramText += ProgramErrorText + ProgramWarningText + ProgramInfoText + FlagsText
+			ProgramText += ProgramErrorText + ProgramWarningText + ProgramInfoText
 
 		elif (ProgramLine.find("// END OF AUTOMATIC CODE GENERATION //") != -1): # Automatic generation section end
 			InAutomaticSection = False
@@ -967,9 +958,9 @@ def UpdateProgram():
 	AlarmsVarText = "\nVAR"
 	if not "Flag : FlagType;" in AlarmsVarContent:
 		AlarmsVarText += "\n\tFlag : FlagType;"
-	if not "Name : STRING[255];" in AlarmsVarContent:
+	if (MaxNumberOfForLoops > 0) and (not "Name : STRING[255];" in AlarmsVarContent):
 		AlarmsVarText += "\n\tName : STRING[255];"
-	if not "String : STRING[255];" in AlarmsVarContent:
+	if (MaxNumberOfForLoops > 0) and (not "String : STRING[255];" in AlarmsVarContent):
 		AlarmsVarText += "\n\tString : STRING[255];"
 	for Index in range(MaxNumberOfForLoops):
 		if not ("ArrayIndex" + str(Index + 1) + " : INT;") in AlarmsVarContent:
@@ -1036,6 +1027,8 @@ def UpdateProgram():
 								else:
 									LocalTypes[IndexType + 1] += "\n\t\t" + Member["Name"] + " : " + TypeFormat
 								break
+			if (len(LocalTypes) == 1) and (LocalTypes[0] == "\nTYPE\n\tFlagType : STRUCT"):
+				LocalTypes[0] += "\n\t\tNew_Member : USINT;"
 			for LocalType in LocalTypes:
 				AlarmsTypText += LocalType + "\n\tEND_STRUCT;"
 			AlarmsTypText += "\nEND_TYPE"
