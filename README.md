@@ -10,10 +10,11 @@ The script is run in the prebuild part with the -prebuild argument, when it is d
 
 How does the script work?
 
-1. Alarms from global types are read (these must have a defined structure of gTaskNameAlarmType data type names)
-2. The detected alarms are written to a tmx file (there you then have to write the texts by yourself)
-3. In the Alarms program are generated Set/Reset functions in the section marked for automatic generation
-4. In the selected configuration, alarms in AlarmsCfg.mpalarmxcore are generated
+1. Alarms from global variables a read
+2. All possible paths to alarm structures are determined
+3. The detected alarms are written to a tmx file (there you then have to write the texts by yourself)
+4. In the Alarms program are generated Set/Reset functions in the section marked for automatic generation
+5. In the selected configuration, alarms in AlarmsCfg.mpalarmxcore are generated
 
 ## Implementation to your project
 
@@ -30,12 +31,10 @@ __Note: The CreateAlarms script is fully compatible with the AddTask script. Whe
 6. Alarms.tmx must has namespace "Alarms"
 7. In the configuration selected in the script configuration, there must be AlarmsCfg.mpalarmxcore file
 8. Alarms in Global.typ have to meet this requirements
-- Each task has its alarms
-- Alarms are divided into Error, Warning and Info groups (task does not have to have all of these groups)
-- Data type must has gTaskNameAlarmType namespace (i.e. gMotionCtrlErrorType, gMotionCtrlWarningType, gMotionCtrlInfoType)
+- Alarms are divided into Error, Warning and Info groups (each data type containing the word "Error", "Warning" or "Info" is taken as an alarm data type and is taken into account when generating the code)
 - Alarms have to be BOOL types
 - Properties of alarms must be written into the Description[2] column and separated by semicolon or comma (supported properties see below)
-            
+
 ## List of supported properties
 
 Properties are key=value pairs in Description[2]. Multiple properties are separated by comma or semicolon.
@@ -74,13 +73,17 @@ Properties Name and Message are generated automatically.
 
 ## Version info
 
-__Version 1.2.0:__
+__Version 2.0.0__
+- New system of finding alarm paths
+- Support of arrays (also defined by constants)
+
+__Version 1.2.0__
 - Configuration of sections to update
 - Configuration of TMX, MpConfig and program name
 - Properties validity
 - Strings must be in quotation marks
 
-__Version 1.1.0:__
+__Version 1.1.0__
 - Bug with default alarm behavior fixed
 - Behavior.Monitoring.MonitoredPV bug fixed
 - Tags are taken from the graphics editor
@@ -88,7 +91,7 @@ __Version 1.1.0:__
 - Path to user data changed to AppData\Roaming\BR\Scripts\CreateAlarms\
 - Error mode added
 	
-__Version 1.0.0:__
+__Version 1.0.0__
 
 - Script creation
 - Basic functions implemented
