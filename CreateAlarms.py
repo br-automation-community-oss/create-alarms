@@ -1,13 +1,12 @@
 #   Copyright:  B&R Industrial Automation
 #   Authors:    Adam Sefranek, Michal Vavrik
 #   Created:	Oct 26, 2021 1:36 PM
-#   Version:	2.0.1
+
+ScriptVersion = "v2.0.1"
 
 # TODO
-# Doplnit zbyvajici properties
-# AlarmsCfg se najde i v jiné conf (potřebuju otestovat)
+# Doplnit zbyvajici properties (smazat monitoring properties)
 # Lépe organizovat SetReset alarmů v poli: společné FORy, kde to jde + Flagy pro struktury
-# Když je proměnná hned na alarmový typ, tak se alarmy nenajdou
 
 #####################################################################################################################################################
 # Dependencies
@@ -483,7 +482,6 @@ def AddVarsToPaths(GlobalVars, GlobalTypes, AlarmPaths):
 					if GlobalVar["Type"] == GlobalType["ParentType"]:
 						ExtendedPaths.append([GlobalVar])
 						break
-	print(ExtendedPaths)
 	return ExtendedPaths
 
 # Create alarm list
@@ -756,7 +754,6 @@ def CreateNames(Alarm):
 		Names[Index] += "." + Alarm["Variable"]
 	if Alarm["Array"] != "":
 		Names = CreateArrays(Names, Alarm["Array"])
-	# print("\n" + str(Names))
 	return Names
 
 # Expand paths with arrays
@@ -844,8 +841,7 @@ def UpdateMpalarmxcore():
 	print("Updating " + UserData["MpConfigName"] + ".mpalarmxcore file...")
 
 	# Create path to mpalarmxcore
-	ConfigDir = os.path.join(ProjectPath, "Physical", UserData["Configuration"])
-	MpAlarmPath = FindFilePath(ConfigDir, UserData["MpConfigName"] + ".mpalarmxcore", True)
+	MpAlarmPath = FindFilePath(ConfigPath, UserData["MpConfigName"] + ".mpalarmxcore", True)
 
 	# Load file
 	IsFile(MpAlarmPath)
@@ -1332,7 +1328,7 @@ def Configuration():
 	FormButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
 	# Version label
-	VersionLabel = QLabel("ⓘ v2.0.0", parent=FormButtonBox)
+	VersionLabel = QLabel("ⓘ " + ScriptVersion, parent=FormButtonBox)
 	VersionLabel.move(0, 10)
 	VersionLabel.setStyleSheet("QLabel{font: 20px \"Bahnschrift SemiLight SemiConde\"; background-color: transparent;} QToolTip{background-color:#eedd22;}")
 	VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
@@ -1473,11 +1469,21 @@ if not RunMode == MODE_ERROR:
 	if (len(UserData) != 9):
 		UserData = {"Configuration":"", "Debug": False, "UpdateTmx": True, "UpdateMpConfig": True, "UpdateProgram": True, "TmxName": "Alarms", "MpConfigName": "AlarmsCfg", "ProgramName": "Alarms", "MaxNesting": 15}
 
+	# Get selected config path
+	ConfigPath = os.path.join(ProjectPath, "Physical", UserData["Configuration"])
+
 # Run respective script mode
 if RunMode == MODE_PREBUILD:
 	
 	# Ouput window message
-	print("----------------------------- Beginning of the script CreateAlarms -----------------------------")
+	print("----------------------- Beginning of the script CreateAlarms " + ScriptVersion + " -----------------------")
+	if UserData["Configuration"] != "":
+		UsedConfiguration = UserData["Configuration"]
+	else:
+		UsedConfiguration = FindFilePath(ConfigPath, UserData["MpConfigName"] + ".mpalarmxcore", True)
+		UsedConfiguration = UsedConfiguration[UsedConfiguration.find("Physical") + 9:]
+		UsedConfiguration = UsedConfiguration[:UsedConfiguration.find("\\")]
+	print("Used configuration: " + UsedConfiguration)
 
 	# Get alarms from global variables and types
 	Alarms = GetAlarms()
