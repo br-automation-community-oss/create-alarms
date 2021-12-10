@@ -21,13 +21,13 @@ How does the script work?
 __Note: The CreateAlarms script is fully compatible with the AddTask script. When adding an Alarms control task using AddTask, points 4.-6. are met and can be skipped. In addition, adding other task types using AddTask supports rules for the structure and namespace of global data types for this script.__
 1. Add the CreateAlarms.py script to the LogicalView in your project (can also be in subfolders)
 2. Add script to prebuild events with "-prebuild" argument
-    $(AS_PROJECT_PATH)/Logical/Scripts/CreateAlarms.py -prebuild
+	$(AS_PROJECT_PATH)/Logical/Scripts/CreateAlarms.py -prebuild
 3. Run script by double-click in AS and setup script configuration, then press OK
 4. Task Alarms with Alarms.c (or Alarms.st), Alarms.typ, Alarms.var and Alarms.tmx must be Inserted to LogicalView
-    (can be also in subfolders)
+	(can be also in subfolders)
 5. In Alarms.c (or Alarms.st) and Alarms.typ must be defined section for automatic code generation
-    // START OF AUTOMATIC CODE GENERATION //
-    // END OF AUTOMATIC CODE GENERATION //
+	// START OF AUTOMATIC CODE GENERATION //
+	// END OF AUTOMATIC CODE GENERATION //
 6. Alarms.tmx must has namespace "Alarms"
 7. In the configuration selected in the script configuration, there must be AlarmsCfg.mpalarmxcore file
 8. Alarms in Global.typ have to meet this requirements
@@ -43,33 +43,26 @@ Values are used to create Alarm List configuration in mpalarmxcore file.
 
 Properties Name and Message are generated automatically.
 
-| Supported properties                      |                                             |
-|-------------------------------------------|---------------------------------------------|
-| __Key__                                   | __Value__                                   |
-| Code                                      | unsigned integer                            |
-| Severity                                  | unsigned integer                            |
-| Behavior                                  | EdgeAlarm, PersistentAlarm, LevelMonitoring |
-| Behavior.MultipleInstances                | FALSE, TRUE                                 |
-| Behavior.ReactionUntilAcknowledged        | FALSE, TRUE                                 |
-| Behavior.Retain                           | FALSE, TRUE                                 |
-| Behavior.Asynchronous                     | FALSE, TRUE                                 |
-| Behavior.Monitoring.MonitoredPV           | PV reference                                |
-| Behavior.Monitoring.LowLimit              | Disabled, Static, Dynamic                   |
-| Behavior.Monitoring.LowLimit.Limit        | float                                       |
-| Behavior.Monitoring.LowLimit.LimitPV      | PV reference                                |
-| Behavior.Monitoring.LowLimit.LimitText    | string                                      |
-| Behavior.Monitoring.HighLimit             | Disabled, Static, Dynamic                   |
-| Behavior.Monitoring.HighLimit.Limit       | float                                       |
-| Behavior.Monitoring.HighLimit.LimitPV     | PV reference                                |
-| Behavior.Monitoring.HighLimit.LimitText   | string                                      |
-| Behavior.Monitoring.Settings              | Static, Dynamic                             |
-| Behavior.Monitoring.Settings.Delay        | float                                       |
-| Behavior.Monitoring.Settings.Hysteresis   | float                                       |
-| Behavior.Monitoring.Settings.DelayPV      | PV reference                                |
-| Behavior.Monitoring.Settings.HysteresisPV | PV reference                                |
-| Disable                                   | FALSE, TRUE                                 |
-| AdditionalInformation1                    | string                                      |
-| AdditionalInformation2                    | string                                      |
+| Supported properties                      			|                                             |
+|-------------------------------------------------------|---------------------------------------------|
+| __Key__												| __Value__                                   |
+| Code													| unsigned integer                            |
+| Severity                               			   	| unsigned integer                            |
+| Behavior                               			   	| EdgeAlarm, PersistentAlarm, LevelMonitoring |
+| Behavior.MultipleInstances             			   	| FALSE, TRUE                                 |
+| Behavior.ReactionUntilAcknowledged	        		| FALSE, TRUE                                 |
+| Behavior.Retain										| FALSE, TRUE                                 |
+| Behavior.Asynchronous                     			| FALSE, TRUE                                 |
+| Behavior.DataUpdate.Activation.Timestamp  			| FALSE, TRUE                                 |
+| Behavior.DataUpdate.Activation.Snippets   			| FALSE, TRUE                                 |
+| Behavior.HistoryReport.InactiveToActive   			| FALSE, TRUE                                 |
+| Behavior.HistoryReport.ActiveToInactive   			| FALSE, TRUE                                 |
+| Behavior.HistoryReport.UnacknowledgedToAcknowledged   | FALSE, TRUE                                 |
+| Behavior.HistoryReport.AcknowledgedToUnacknowledged   | FALSE, TRUE                                 |
+| Behavior.HistoryReport.Update							| FALSE, TRUE                                 |
+| Disable												| FALSE, TRUE                                 |
+| AdditionalInformation1								| string                                      |
+| AdditionalInformation2								| string                                      |
 
 ## Version info
 
