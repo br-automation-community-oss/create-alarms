@@ -5,7 +5,6 @@
 ScriptVersion = "v2.0.1"
 
 # TODO
-# Doplnit zbyvajici properties (smazat monitoring properties)
 # Lépe organizovat SetReset alarmů v poli: společné FORy, kde to jde + Flagy pro struktury
 
 #####################################################################################################################################################
@@ -33,7 +32,7 @@ RANGE_UDINT = [0, 4294967295]
 RANGE_REAL = [-3.4E38, 3.4E38]
 RANGE_LREAL = [-1.797E308, 1.797E308]
 RANGE_BOOL = ["FALSE", "TRUE", "False", "True", "false", "true"]
-RANGE_BEHAVIOR = ["EdgeAlarm", "PersistentAlarm", "LevelMonitoring"]
+RANGE_BEHAVIOR = ["EdgeAlarm", "PersistentAlarm"]
 RANGE_DIS_STAT_DYN = ["Disabled", "Static", "Dynamic"]
 RANGE_STAT_DYN = ["Static", "Dynamic"]
 RANGE_NONE = [None]
@@ -1329,6 +1328,8 @@ def Configuration():
 	VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
 	\nVersion 2.0.1
 	- Once nested alarms path bug fixed
+	- Supported properties change
+	- Print of used configuration
 	\nVersion 2.0.0
 	- New system of finding alarm paths
 	- Support of arrays (also defined by constants)
