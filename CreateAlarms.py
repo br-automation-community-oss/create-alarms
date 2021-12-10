@@ -1,7 +1,7 @@
 #   Copyright:  B&R Industrial Automation
 #   Authors:    Adam Sefranek, Michal Vavrik
 #   Created:	Oct 26, 2021 1:36 PM
-#   Version:	2.0.0
+#   Version:	2.0.1
 
 # TODO
 # Doplnit zbyvajici properties
@@ -242,7 +242,7 @@ def GetAlarms():
 		AlarmPath.reverse()
 
 	# Add global variables to alarm paths
-	AlarmPaths = AddVarsToPaths(GlobalVars, AlarmPaths)
+	AlarmPaths = AddVarsToPaths(GlobalVars, GlobalTypes, AlarmPaths)
 
 	# Create alarm list
 	Alarms = CreateAlarms(GlobalTypes, AlarmPaths)
@@ -465,16 +465,25 @@ def GetPaths(AlarmTypes, GlobalTypes, AlarmPaths, FirstTime, Nesting = 0):
 		GetPaths(Types, GlobalTypes, AlarmPaths, False, Nesting)
 
 # Add global variables to the beginning of the paths
-def AddVarsToPaths(GlobalVars, AlarmPaths):
+def AddVarsToPaths(GlobalVars, GlobalTypes, AlarmPaths):
 	ExtendedPaths = []
 	for GlobalVar in GlobalVars:
+		PathsNumber = 0
 		for AlarmPath in AlarmPaths:
 			for IndexMember, PathMember in enumerate(AlarmPath):
 				if GlobalVar["Type"] == PathMember["ParentType"]:
+					PathsNumber += 1
 					HelpPath = AlarmPath[IndexMember:]
 					HelpPath.insert(0, GlobalVar)
 					if HelpPath not in ExtendedPaths:
 						ExtendedPaths.append(HelpPath)
+		if PathsNumber == 0:
+			if ("Error" in GlobalVar["Type"]) or ("Warning" in GlobalVar["Type"]) or ("Info" in GlobalVar["Type"]):
+				for GlobalType in GlobalTypes:
+					if GlobalVar["Type"] == GlobalType["ParentType"]:
+						ExtendedPaths.append([GlobalVar])
+						break
+	print(ExtendedPaths)
 	return ExtendedPaths
 
 # Create alarm list
@@ -1000,9 +1009,14 @@ def UpdateProgram():
 					if IndexMember == 0:
 						if not Member["Name"] in LocalTypes[0]:
 							if Member["Array"] != "":
-								LocalTypes[0] += "\n\t\t" + Member["Name"] + " : " + "ARRAY[" + str(Member["Array"][0]) + ".." + str(Member["Array"][1]) + "]OF " + Member["Type"] + "Flag;"
+								TypeFormat = "ARRAY[" + str(Member["Array"][0]) + ".." + str(Member["Array"][1]) + "]OF "
 							else:
-								LocalTypes[0] += "\n\t\t" + Member["Name"] + " : " + Member["Type"] + "Flag;"
+								TypeFormat = ""
+							if (IndexMember + 1) != len(UniquePath):
+								TypeFormat += Member["Type"] + "Flag;"
+							else:
+								TypeFormat += Member["Type"] + ";"
+							LocalTypes[0] += "\n\t\t" + Member["Name"] + " : " + TypeFormat
 					else:
 						for IndexType, LocalType in enumerate(LocalTypes):
 							if Member["Array"] != "":
@@ -1322,6 +1336,8 @@ def Configuration():
 	VersionLabel.move(0, 10)
 	VersionLabel.setStyleSheet("QLabel{font: 20px \"Bahnschrift SemiLight SemiConde\"; background-color: transparent;} QToolTip{background-color:#eedd22;}")
 	VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
+	\nVersion 2.0.1
+	- Once nested alarms path bug fixed
 	\nVersion 2.0.0
 	- New system of finding alarm paths
 	- Support of arrays (also defined by constants)
