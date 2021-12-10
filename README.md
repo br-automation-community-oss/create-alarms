@@ -65,7 +65,11 @@ Properties Name and Message are generated automatically.
 | AdditionalInformation2								| string                                      |
 
 ## Version info
-
+__Version 2.0.1__
+- Once nested alarms path bug fixed
+- Supported properties change
+- Print of used configuration
+	
 __Version 2.0.0__
 - New system of finding alarm paths
 - Support of arrays (also defined by constants)
