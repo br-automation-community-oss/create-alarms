@@ -179,15 +179,23 @@ def IsDir(DirPath):
 		TerminateScript()
 	return True
 
-# Get path to Logical directory
-def GetLogicalPath():
-	LogicalPath = os.path.dirname(os.path.abspath(__file__))
-	if (LogicalPath.find("Logical") == -1):
+# Get project info (project name, project path, path to logical)
+def GetProjectInfo():
+	CurrentPath = os.path.dirname(os.path.abspath(__file__))
+	if (CurrentPath.find("Logical") == -1):
 		print("Error: Directory 'Logical' does not exist.")
-		LogicalPath = ""
+		ProjectName = ProjectPath = LogicalPath = ""
 	else:
-		LogicalPath = LogicalPath[:LogicalPath.find("Logical") + 7]
-	return LogicalPath
+		# Get project path
+		ProjectPath = CurrentPath[:CurrentPath.find("Logical") - 1]
+
+		# Get project name
+		ProjectName = os.path.basename(ProjectPath)
+
+		# Get logical path
+		LogicalPath = CurrentPath[:CurrentPath.find("Logical") + 7]
+
+	return ProjectName, ProjectPath, LogicalPath
 
 # Walk through all variables and data types and create list of alarms
 def GetAlarms():
@@ -1326,6 +1334,9 @@ def Configuration():
 	VersionLabel.move(0, 10)
 	VersionLabel.setStyleSheet("QLabel{font: 20px \"Bahnschrift SemiLight SemiConde\"; background-color: transparent;} QToolTip{background-color:#eedd22;}")
 	VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
+	\nSupport contacts
+	michal.vavrik@br-automation.com
+	adam.sefranek@br-automation.com
 	\nVersion 2.0.1
 	- Once nested alarms path bug fixed
 	- Supported properties change
@@ -1429,8 +1440,8 @@ def LogicalNotFoundMessage():
 # Main
 #####################################################################################################################################################
 
-# Get path to Logical directory
-LogicalPath = GetLogicalPath()
+# Get project info
+ProjectName, ProjectPath, LogicalPath = GetProjectInfo()
 
 # Script mode decision
 if LogicalPath == "":
@@ -1446,10 +1457,6 @@ else:
 	RunMode = MODE_CONFIGURATION
 
 if not RunMode == MODE_ERROR:
-	# Get project path and name
-	ProjectPath = LogicalPath[:LogicalPath.find("Logical") - 1]
-	ProjectName = os.path.basename(ProjectPath)
-
 	# Get path to user data
 	UserDataPath = os.path.join(os.getenv("APPDATA"), "BR", "Scripts", "CreateAlarms", ProjectName)
 	if not os.path.isdir(os.path.dirname(UserDataPath)):

@@ -48,7 +48,7 @@ Properties Name and Message are generated automatically.
 | __Key__												| __Value__                                   |
 | Code													| unsigned integer                            |
 | Severity                               			   	| unsigned integer                            |
-| Behavior                               			   	| EdgeAlarm, PersistentAlarm, LevelMonitoring |
+| Behavior                               			   	| EdgeAlarm, PersistentAlarm                  |
 | Behavior.MultipleInstances             			   	| FALSE, TRUE                                 |
 | Behavior.ReactionUntilAcknowledged	        		| FALSE, TRUE                                 |
 | Behavior.Retain										| FALSE, TRUE                                 |
