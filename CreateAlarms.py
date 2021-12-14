@@ -32,15 +32,18 @@ RANGE_UDINT = [0, 4294967295]
 RANGE_REAL = [-3.4E38, 3.4E38]
 RANGE_LREAL = [-1.797E308, 1.797E308]
 RANGE_BOOL = ["FALSE", "TRUE", "False", "True", "false", "true"]
-RANGE_BEHAVIOR = ["EdgeAlarm", "PersistentAlarm"]
+RANGE_BEHAVIOR = ["EdgeAlarm", "PersistentAlarm", "UserDefined"]
 RANGE_DIS_STAT_DYN = ["Disabled", "Static", "Dynamic"]
 RANGE_STAT_DYN = ["Static", "Dynamic"]
+RANGE_ACKNOWLEDGE = [0, 3]
 RANGE_NONE = [None]
 
 # Each key represents allowed alarm property, its value is XML element tag
 PROPERTIES = {"Code": {"Tag": "Property", "ID": "Code", "Validity": RANGE_UDINT},
 			  "Severity": {"Tag": "Property", "ID": "Severity", "Validity": RANGE_UDINT},
 			  "Behavior": {"Tag": "Selector", "ID": "Behavior", "Validity": RANGE_BEHAVIOR},
+			  "Behavior.AutoReset": {"Tag": "Property", "ID": "AutoReset", "Validity": RANGE_BOOL},
+			  "Behavior.Acknowledge": {"Tag": "Property", "ID": "Acknowledge", "Validity": RANGE_ACKNOWLEDGE},
 			  "Behavior.MultipleInstances": {"Tag": "Property", "ID": "MultipleInstances", "Validity": RANGE_BOOL},
 			  "Behavior.ReactionUntilAcknowledged": {"Tag": "Property", "ID": "ReactionUntilAcknowledged", "Validity": RANGE_BOOL},
 			  "Behavior.Retain": {"Tag": "Property", "ID": "Retain", "Validity": RANGE_BOOL},
@@ -498,10 +501,10 @@ def CreateAlarms(GlobalTypes, AlarmPaths):
 					Severity = "Warning"
 				elif ("Info" in GlobalType["ParentType"]):
 					Severity = "Info"
-				GlobalType["Description2"] = GlobalType["Description2"].replace("Disabled", "0")
-				GlobalType["Description2"] = GlobalType["Description2"].replace("Required", "1")
-				GlobalType["Description2"] = GlobalType["Description2"].replace("RequiredAfterActive", "2")
 				GlobalType["Description2"] = GlobalType["Description2"].replace("RequiredAndResettable", "3")
+				GlobalType["Description2"] = GlobalType["Description2"].replace("RequiredAfterActive", "2")
+				GlobalType["Description2"] = GlobalType["Description2"].replace("Required", "1")
+				GlobalType["Description2"] = GlobalType["Description2"].replace("Disabled", "0")
 				Alarms.append({"Variable": GlobalType["Name"], "Array": GlobalType["Array"], "Path": AlarmPath, "Severity": Severity, "Properties": GlobalType["Description2"]})
 	return Alarms
 
@@ -527,6 +530,7 @@ def ParseProperties(Alarms):
 	for Member in Alarms:
 		Pairs = re.findall(PATTERN_PAIR, Member["Properties"])
 		Properties = []
+		BehaviorFound = False
 
 		for Pair in Pairs:
 			Key = Pair[0]
@@ -536,6 +540,7 @@ def ParseProperties(Alarms):
 				Value = Value[1:-1]
 			
 			if Key in PROPERTIES:
+				BehaviorFound |= (Key == "Behavior")
 				if "FALSE" in PROPERTIES[Key]["Validity"]:
 					Value = Value.upper()
 				Valid = Validity(Member["Variable"], Key, Value)
@@ -543,6 +548,10 @@ def ParseProperties(Alarms):
 			else:
 				print("Warning: Property '" + Key + "' of member '" + PathToAlarm(Member) +"' is not valid.")
 				Properties.append({"Key": Key, "Value": Value, "Valid": False, "Tag": None, "ID": None})
+		
+		if not BehaviorFound and Properties:
+			Key = "Behavior"
+			Properties.append({"Key": Key, "Value": "EdgeAlarm", "Valid": True, "Tag": PROPERTIES[Key]["Tag"], "ID": PROPERTIES[Key]["ID"]})
 
 		if Properties:
 			Properties = sorted(Properties, key=lambda d: d["Key"])
@@ -556,7 +565,7 @@ def Validity(Name, Key, Value):
 	try:
 		ValueNotInRangeText = "Warning: Value of property '" + Key + "' of member '" + Name + "' is not in valid range "
 		if type(PROPERTIES[Key]["Validity"][0]) == int:
-			if int(Value) in range(PROPERTIES[Key]["Validity"][0], PROPERTIES[Key]["Validity"][1]):
+			if int(Value) in range(PROPERTIES[Key]["Validity"][0], PROPERTIES[Key]["Validity"][1] + 1):
 				Valid = True
 			else:
 				print(ValueNotInRangeText + "<" + str(PROPERTIES[Key]["Validity"][0]) + "; " + str(PROPERTIES[Key]["Validity"][1]) + ">")
