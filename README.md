@@ -69,6 +69,7 @@ __Version 2.0.1__
 - Once nested alarms path bug fixed
 - Supported properties change
 - Print of used configuration
+- Invalid property name bug fixed
 	
 __Version 2.0.0__
 - New system of finding alarm paths

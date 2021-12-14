@@ -1346,6 +1346,7 @@ def Configuration():
 	- Once nested alarms path bug fixed
 	- Supported properties change
 	- Print of used configuration
+	- Invalid property name bug fixed
 	\nVersion 2.0.0
 	- New system of finding alarm paths
 	- Support of arrays (also defined by constants)
