@@ -43,26 +43,28 @@ Values are used to create Alarm List configuration in mpalarmxcore file.
 
 Properties Name and Message are generated automatically.
 
-| Supported properties                      			|                                             |
-|-------------------------------------------------------|---------------------------------------------|
-| __Key__												| __Value__                                   |
-| Code													| unsigned integer                            |
-| Severity                               			   	| unsigned integer                            |
-| Behavior                               			   	| EdgeAlarm, PersistentAlarm                  |
-| Behavior.MultipleInstances             			   	| FALSE, TRUE                                 |
-| Behavior.ReactionUntilAcknowledged	        		| FALSE, TRUE                                 |
-| Behavior.Retain										| FALSE, TRUE                                 |
-| Behavior.Asynchronous                     			| FALSE, TRUE                                 |
-| Behavior.DataUpdate.Activation.Timestamp  			| FALSE, TRUE                                 |
-| Behavior.DataUpdate.Activation.Snippets   			| FALSE, TRUE                                 |
-| Behavior.HistoryReport.InactiveToActive   			| FALSE, TRUE                                 |
-| Behavior.HistoryReport.ActiveToInactive   			| FALSE, TRUE                                 |
-| Behavior.HistoryReport.UnacknowledgedToAcknowledged   | FALSE, TRUE                                 |
-| Behavior.HistoryReport.AcknowledgedToUnacknowledged   | FALSE, TRUE                                 |
-| Behavior.HistoryReport.Update							| FALSE, TRUE                                 |
-| Disable												| FALSE, TRUE                                 |
-| AdditionalInformation1								| string                                      |
-| AdditionalInformation2								| string                                      |
+| Supported properties                      			|                                                                |
+|-------------------------------------------------------|----------------------------------------------------------------|
+| __Key__												| __Value__                                                      |
+| Code													| unsigned integer                                               |
+| Severity                               			   	| unsigned integer                                               |
+| Behavior                               			   	| EdgeAlarm, PersistentAlarm, UserDefined                        |
+| Behavior.AutoReset             			         	| FALSE, TRUE                                                    |
+| Behavior.Acknowledge             		         	   	| Disabled, Required, RequiredAfterActive, RequiredAndResettable |
+| Behavior.MultipleInstances             			   	| FALSE, TRUE                                                    |
+| Behavior.ReactionUntilAcknowledged	        		| FALSE, TRUE                                                    |
+| Behavior.Retain										| FALSE, TRUE                                                    |
+| Behavior.Asynchronous                     			| FALSE, TRUE                                                    |
+| Behavior.DataUpdate.Activation.Timestamp  			| FALSE, TRUE                                                    |
+| Behavior.DataUpdate.Activation.Snippets   			| FALSE, TRUE                                                    |
+| Behavior.HistoryReport.InactiveToActive   			| FALSE, TRUE                                                    |
+| Behavior.HistoryReport.ActiveToInactive   			| FALSE, TRUE                                                    |
+| Behavior.HistoryReport.UnacknowledgedToAcknowledged   | FALSE, TRUE                                                    |
+| Behavior.HistoryReport.AcknowledgedToUnacknowledged   | FALSE, TRUE                                                    |
+| Behavior.HistoryReport.Update							| FALSE, TRUE                                                    |
+| Disable												| FALSE, TRUE                                                    |
+| AdditionalInformation1								| string                                                         |
+| AdditionalInformation2								| string                                                         |
 
 ## Version info
 __Version 2.0.1__
