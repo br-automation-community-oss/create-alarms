@@ -498,6 +498,10 @@ def CreateAlarms(GlobalTypes, AlarmPaths):
 					Severity = "Warning"
 				elif ("Info" in GlobalType["ParentType"]):
 					Severity = "Info"
+				GlobalType["Description2"] = GlobalType["Description2"].replace("Disabled", "0")
+				GlobalType["Description2"] = GlobalType["Description2"].replace("Required", "1")
+				GlobalType["Description2"] = GlobalType["Description2"].replace("RequiredAfterActive", "2")
+				GlobalType["Description2"] = GlobalType["Description2"].replace("RequiredAndResettable", "3")
 				Alarms.append({"Variable": GlobalType["Name"], "Array": GlobalType["Array"], "Path": AlarmPath, "Severity": Severity, "Properties": GlobalType["Description2"]})
 	return Alarms
 
@@ -538,6 +542,7 @@ def ParseProperties(Alarms):
 				Properties.append({"Key": Key, "Value": Value, "Valid": Valid, "Tag": PROPERTIES[Key]["Tag"], "ID": PROPERTIES[Key]["ID"]})
 			else:
 				print("Warning: Property '" + Key + "' of member '" + PathToAlarm(Member) +"' is not valid.")
+				Properties.append({"Key": Key, "Value": Value, "Valid": False, "Tag": None, "ID": None})
 
 		if Properties:
 			Properties = sorted(Properties, key=lambda d: d["Key"])
