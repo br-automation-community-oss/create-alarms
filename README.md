@@ -67,6 +67,9 @@ Properties Name and Message are generated automatically.
 | AdditionalInformation2								| string                                                         |
 
 ## Version info
+__Version 2.0.2__
+- Changes according to B&R Coding guidelines
+
 __Version 2.0.1__
 - Once nested alarms path bug fixed
 - Supported properties change
