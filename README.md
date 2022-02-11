@@ -67,6 +67,9 @@ Properties Name and Message are generated automatically.
 | AdditionalInformation2								| string                                                         |
 
 ## Version info
+__Version 2.1.0__
+- PyGuiTemplate implemented
+
 __Version 2.0.2__
 - Changes according to B&R Coding guidelines
 
