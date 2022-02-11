@@ -2,8 +2,6 @@
 #   Authors:    Adam Sefranek, Michal Vavrik
 #   Created:	Oct 26, 2021 1:36 PM
 
-ScriptVersion = "v2.0.2"
-
 # TODO
 # Lépe organizovat SetReset alarmů v poli: společné FORy, kde to jde + Flagy pro struktury
 
@@ -12,13 +10,24 @@ ScriptVersion = "v2.0.2"
 #####################################################################################################################################################
 import os, re, sys
 import xml.etree.ElementTree as et
-from PyQt5 import QtCore
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import pickle
 
 #####################################################################################################################################################
-# Global constants
+# Global constants and variables
 #####################################################################################################################################################
+# General
+WINDOW_TITLE = "GUI Template"
+SCRIPT_VERSION = "2.1.0"
+
+# Window style
+WINDOW_COLOR_STYLE = "#4a2c0d"
+DEFAULT_GUI_SIZE = {"TitleFontSize": 30, "FontSize": 24, "TooltipFontSize": 16, "WidgetHeight": 50, "ButtonWidth": 180}
+gSizeRatio = 1
+gAdjustedGuiSize = {}
+
 MODE_PREBUILD = 0
 MODE_CONFIGURATION = 1
 MODE_ERROR = 2
@@ -132,9 +141,663 @@ class Node(object):
 	def find(self, key):
 		return next(iter([node for node in self.children if node.key == key]), None)
 
+# Main GUI window
+class MainWindow(QWidget):
+	# Initialization of the window
+	def __init__(Self):
+		super(MainWindow, Self).__init__()
+
+		# Window functions
+		Self.CreateGlobalWidgets()
+		Self.CreateFormWidgets()
+		Self.CreateActions()
+
+		# Show window
+		ShowAdjusted(Self)
+
+	# Global widgets of the window
+	def CreateGlobalWidgets(Self):
+		# Set frameless window
+		Self.setWindowFlags(Self.windowFlags() | Qt.FramelessWindowHint)
+		Self.setWindowTitle(WINDOW_TITLE)
+
+		# Create title bar
+		Self.TitleBar = TitleBar(Self, WINDOW_TITLE, WINDOW_COLOR_STYLE, True, True, True)
+		Self.setContentsMargins(0, Self.TitleBar.height(), 0, 0)
+
+		# Create bottom button bar
+		Self.BottomBar = BottomBar(Self)
+		
+		# Create info dialog to inform the user
+		Self.InfoD = InfoDialog()
+
+		# Adjust window size
+		Self.resize(800, Self.TitleBar.height())
+		Self.setMaximumSize(1920, 1080)
+
+		# Set window styles
+		Style = """
+		QWidget {
+			background-color: qlineargradient(spread:pad, x1:1, y1:0, x2:1, y2:1, stop:0 #000000, stop:1 #141414);
+			color: #cccccc;
+			font: ReplaceFontSizepx \"Bahnschrift SemiLight SemiConde\";
+		}
+
+		QGroupBox {
+			border: 2px solid;
+			border-color: ReplaceColor;
+		}
+
+		QToolTip {
+			background-color: #eedd22;
+			color: #111111;
+			font: ReplaceTooltipFontSizepx \"Bahnschrift SemiLight SemiConde\";
+			border: solid black 1px;
+		}
+
+		QLabel {
+			background-color: transparent;
+			color: #888888;
+		}
+
+		QLineEdit {
+			background-color: #3d3d3d;
+			color: #cccccc;
+			border-radius: 8px;
+			padding-left: 10px;
+			height: ReplaceWidgetHeightpx;
+		}
+
+		QLineEdit:hover {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #373737, stop:0.505682 #373737, stop:1 #282828);
+			color: #cccccc;
+		}
+
+		QPushButton {
+			background-color: #3d3d3d;
+			color: #cccccc;
+			width: ReplaceButtonWidthpx;
+			height: ReplaceWidgetHeightpx;
+			border-style: solid;
+			border-radius: 8px;
+		}
+
+		QPushButton:hover {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #373737, stop:0.505682 #373737, stop:1 #282828);
+			color: #cccccc;
+		}
+
+		QPushButton:pressed {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #2d2d2d, stop:0.505682 #282828, stop:1 #2d2d2d);
+			color: #ffffff;
+		}
+		
+		QPushButton:checked {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #095209, stop:1 #0e780e);
+			color:#ffffff;
+		}
+
+		QPushButton:checked:hover {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #084209, stop:1 #0c660e);
+		}
+
+		QPushButton:checked:pressed {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #083108, stop:1 #0d570d);
+		}
+
+		QCheckBox {
+			background-color: transparent;
+			border-style: none;
+		}
+
+		QCheckBox::indicator {
+			background-color: #3d3d3d;
+			top: 2px;
+			width: ReplaceWidgetHeightpx;
+			height: ReplaceWidgetHeightpx;
+			border-radius: 8px;
+			margin-bottom: 4px;
+		}
+
+		QCheckBox::indicator:hover {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #373737, stop:0.505682 #373737, stop:1 #282828);
+		}
+
+		QCheckBox::indicator:pressed {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #2d2d2d, stop:0.505682 #282828, stop:1 #2d2d2d);
+		}
+		
+		QCheckBox::indicator:checked {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #095209, stop:1 #0e780e);
+		}
+
+		QCheckBox::indicator:checked:hover {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #084209, stop:1 #0c660e);
+		}
+
+		QCheckBox::indicator:checked:pressed {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #083108, stop:1 #0d570d);
+		}
+
+		QComboBox {
+			background-color: #3d3d3d;
+			color: #cccccc;
+			height: ReplaceWidgetHeightpx;
+			border: none;
+			border-radius: 8px;
+			padding-left: 10px;
+		}
+
+		QComboBox:hover {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #373737, stop:0.505682 #373737, stop:1 #282828);
+			color: #cccccc;
+		}
+		
+		QComboBox::drop-down {
+			background-color: #282828;
+			width: 20px;
+			border-top-right-radius: 8px;
+			border-bottom-right-radius: 8px;
+		}
+
+		QComboBox QAbstractItemView {
+			background-color: #3d3d3d;
+			color: #cccccc;
+		}
+		"""
+		Self.setStyleSheet(FinishStyle(Style))
+
+		# Create main group box
+		Self.MainGB = QGroupBox(Self)
+		Self.MainGB.setGeometry(0, Self.TitleBar.height(), Self.width(), Self.height() - Self.TitleBar.height())
+
+		# Create a form Layout
+		Self.LayoutFL = QFormLayout()
+		Self.LayoutFL.setHorizontalSpacing(20)
+
+		# Set layout of window
+		MainVBL = QVBoxLayout(Self)
+		MainVBL.addLayout(Self.LayoutFL)
+		MainVBL.addWidget(Self.BottomBar.BottomBarGB)
+
+	# Form widgets
+	def CreateFormWidgets(Self):
+		# Configuration selection
+		Self.ConfigComboBox = QComboBox()
+		Self.ConfigComboBox.addItems(ConfigName)
+		Self.ConfigComboBox.setToolTip("Select configuration with .mpalarmxcore file")
+		Self.ConfigComboBox.setCurrentText(UserData["Configuration"])
+		ConfigLabel = QLabel("Select configuration")
+		ConfigLabel.setToolTip("Select configuration with .mpalarmxcore file")
+		Self.LayoutFL.addRow(ConfigLabel, Self.ConfigComboBox)
+
+		# Debug option
+		Self.DebugPushButton = QPushButton("DEBUG")
+		Self.DebugPushButton.setToolTip("Turns on printing of debug messages")
+		Self.DebugPushButton.setCheckable(True)
+		Self.DebugPushButton.setChecked(UserData["Debug"])
+		Self.DebugPushButton.setFixedHeight(50)
+		DebugLabel = QLabel("Turn on debugging")
+		DebugLabel.setToolTip("Turns on printing of debug messages")
+		Self.LayoutFL.addRow(DebugLabel, Self.DebugPushButton)
+
+		# Tmx name
+		Self.TmxNameLineEdit = QLineEdit()
+		Self.TmxNameLineEdit.setToolTip("Name of the tmx file without .tmx extension")
+		Self.TmxNameLineEdit.setText(UserData["TmxName"])
+		Self.TmxNameLineEdit.setFixedHeight(50)
+		TmxNameLabel = QLabel("Tmx name")
+		TmxNameLabel.setToolTip("Name of the tmx file without .tmx extension")
+		TmxExtensionLabel = QLabel(".tmx")
+		TmxExtensionLabel.setToolTip("Name of the tmx file without .tmx extension")
+		Self.TmxNameRow = QHBoxLayout()
+		Self.TmxNameRow.addWidget(Self.TmxNameLineEdit)
+		Self.TmxNameRow.addSpacing(10)
+		Self.TmxNameRow.addWidget(TmxExtensionLabel)
+		Self.LayoutFL.addRow(TmxNameLabel, Self.TmxNameRow)
+
+		# MpConfig name
+		Self.MpConfigNameLineEdit = QLineEdit()
+		Self.MpConfigNameLineEdit.setToolTip("Name of the MpConfig file without .mpalarmxcore extension (cannot be same as program name)")
+		Self.MpConfigNameLineEdit.setText(UserData["MpConfigName"])
+		Self.MpConfigNameLineEdit.setFixedHeight(50)
+		MpConfigNameLabel = QLabel("MpConfig name")
+		MpConfigNameLabel.setToolTip("Name of the MpConfig file without .mpalarmxcore extension (cannot be same as program name)")
+		MpConfigExtensionLabel = QLabel(".mpalarmxcore")
+		MpConfigExtensionLabel.setToolTip("Name of the MpConfig file without .mpalarmxcore extension (cannot be same as program name)")
+		Self.MpConfigNameRow = QHBoxLayout()
+		Self.MpConfigNameRow.addWidget(Self.MpConfigNameLineEdit)
+		Self.MpConfigNameRow.addSpacing(10)
+		Self.MpConfigNameRow.addWidget(MpConfigExtensionLabel)
+		Self.LayoutFL.addRow(MpConfigNameLabel, Self.MpConfigNameRow)
+
+		# Program name
+		Self.ProgramNameLineEdit = QLineEdit()
+		Self.ProgramNameLineEdit.setToolTip("Name of the program file without .st/.c extension (cannot be same as MpConfig name)")
+		Self.ProgramNameLineEdit.setText(UserData["ProgramName"])
+		Self.ProgramNameLineEdit.setFixedHeight(50)
+		ProgramNameLabel = QLabel("Program name")
+		ProgramNameLabel.setToolTip("Name of the program file without .st/.c extension (cannot be same as MpConfig name)")
+		ProgramExtensionLabel = QLabel(".st/.c")
+		ProgramExtensionLabel.setToolTip("Name of the program file without .st/.c extension (cannot be same as MpConfig name)")
+		Self.ProgramNameRow = QHBoxLayout()
+		Self.ProgramNameRow.addWidget(Self.ProgramNameLineEdit)
+		Self.ProgramNameRow.addSpacing(10)
+		Self.ProgramNameRow.addWidget(ProgramExtensionLabel)
+		Self.LayoutFL.addRow(ProgramNameLabel, Self.ProgramNameRow)
+
+		# Sections update
+		Self.UpdateTmxCheckBox = QCheckBox("Update TMX")
+		Self.UpdateTmxCheckBox.setToolTip("The script will update the TMX file every build")
+		Self.UpdateTmxCheckBox.setFixedHeight(50)
+		Self.UpdateTmxCheckBox.setChecked(UserData["UpdateTmx"])
+		Self.UpdateMpConfigCheckBox = QCheckBox("Update MpConfig")
+		Self.UpdateMpConfigCheckBox.setToolTip("The script will update the MpAlarmXCore file every build")
+		Self.UpdateMpConfigCheckBox.setFixedHeight(50)
+		Self.UpdateMpConfigCheckBox.setChecked(UserData["UpdateMpConfig"])
+		Self.UpdateProgramCheckBox = QCheckBox("Update Set/Reset")
+		Self.UpdateProgramCheckBox.setToolTip("The script will update the .st/.c program file every build")
+		Self.UpdateProgramCheckBox.setFixedHeight(50)
+		Self.UpdateProgramCheckBox.setChecked(UserData["UpdateProgram"])
+		Self.UpdateSectionRow = QHBoxLayout()
+		Self.UpdateSectionRow.addWidget(Self.UpdateTmxCheckBox)
+		Self.UpdateSectionRow.addSpacing(10)
+		Self.UpdateSectionRow.addWidget(Self.UpdateMpConfigCheckBox)
+		Self.UpdateSectionRow.addSpacing(10)
+		Self.UpdateSectionRow.addWidget(Self.UpdateProgramCheckBox)
+		Self.LayoutFL.addRow(Self.UpdateSectionRow)
+
+	# Window actions
+	def CreateActions(Self):
+		# Actions of global buttons
+		Self.BottomBar.OkPB.clicked.connect(Self.aGuiAccepted)
+		Self.BottomBar.CancelPB.clicked.connect(Self.close)
+		Self.InfoD.OkPB.clicked.connect(Self.close)
+		Self.InfoD.OkPB.clicked.connect(Self.InfoD.close)
+
+		# Actions of form widgets
+		Self.TmxNameLineEdit.textChanged.connect(lambda: Self.TextInputCheck(Self.TmxNameLineEdit))
+		Self.MpConfigNameLineEdit.textChanged.connect(lambda: Self.TextInputCheck(Self.MpConfigNameLineEdit, Self.ProgramNameLineEdit))
+		Self.ProgramNameLineEdit.textChanged.connect(lambda: Self.TextInputCheck(Self.ProgramNameLineEdit, Self.MpConfigNameLineEdit))
+
+	# Text inputs condition check
+	def TextInputCheck(Self, TextInput1: QLineEdit, TextInput2: QLineEdit = None):
+		if (TextInput1.text() == ""):
+			TextInput1.setStyleSheet("QLineEdit{background:#661111;}")
+		else:
+			TextInput1.setStyleSheet("")
+
+		if TextInput2 != None:
+			if (TextInput2.text() == ""):
+				TextInput2.setStyleSheet("QLineEdit{background:#661111;}")
+			else:
+				TextInput2.setStyleSheet("")
+
+			if (TextInput1.text() == TextInput2.text()):
+				TextInput1.setStyleSheet("QLineEdit{background:#661111;}")
+				TextInput2.setStyleSheet("QLineEdit{background:#661111;}")
+
+	# GUI was accepted by OK button
+	def aGuiAccepted(Self):
+		if (Self.TmxNameLineEdit.text() != "") and (Self.MpConfigNameLineEdit.text() != "") and (Self.ProgramNameLineEdit.text() != "") and (Self.MpConfigNameLineEdit.text() != Self.ProgramNameLineEdit.text()):
+			UserData["Configuration"] = Self.ConfigComboBox.currentText()
+			UserData["Debug"] = Self.DebugPushButton.isChecked()
+			UserData["UpdateTmx"] = Self.UpdateTmxCheckBox.isChecked()
+			UserData["UpdateMpConfig"] = Self.UpdateMpConfigCheckBox.isChecked()
+			UserData["UpdateProgram"] = Self.UpdateProgramCheckBox.isChecked()
+			UserData["TmxName"] = Self.TmxNameLineEdit.text()
+			UserData["MpConfigName"] = Self.MpConfigNameLineEdit.text()
+			UserData["ProgramName"] = Self.ProgramNameLineEdit.text()
+			
+			with open(UserDataPath, "wb") as CreateAlarmsSettings:
+				pickle.dump(UserData, CreateAlarmsSettings)
+				
+			Self.InfoD.MessageL.setText("The configuration has been set.")
+			ShowAdjusted(Self.InfoD)
+
+	# State of the window changed
+	def changeEvent(Self, Event: QEvent):
+		if Event.type() == Event.WindowStateChange:
+			Self.TitleBar.windowStateChanged(Self.windowState())
+
+	# Size of the window changed
+	def resizeEvent(Self, Event: QEvent):
+		Self.TitleBar.resize(Self.width(), Self.TitleBar.height())
+		Self.MainGB.setGeometry(0, Self.TitleBar.height(), Self.width(), Self.height() - Self.TitleBar.height())
+
+# Window title bar
+class TitleBar(QWidget):
+	ClickPosition = None
+
+	# Initialization of the title bar
+	def __init__(Self, Parent, WindowTitle, TitleColor, UseMinButton, UseMaxButton, UseCloseButton):
+		super(TitleBar, Self).__init__(Parent)
+
+		# Title bar layout
+		Layout = QHBoxLayout(Self)
+		Layout.setContentsMargins(int(8 * gSizeRatio), int(8 * gSizeRatio),int(8 * gSizeRatio),int(8 * gSizeRatio))
+		Layout.addStretch()
+
+		# Label title
+		Self.Title = QLabel(WindowTitle, Self, alignment = Qt.AlignCenter)
+		Style = "background-color: ReplaceColor; color: #cccccc; font: ReplaceTitleFontSizepx \"Bahnschrift SemiLight SemiConde\"; padding-top: 4px;".replace("ReplaceColor", TitleColor)
+		Self.Title.setStyleSheet(FinishStyle(Style))
+		Self.Title.adjustSize()
+
+		# Appearance definition
+		Style = Self.style()
+		Self.ReferenceSize = Self.Title.height() - int(18 * gSizeRatio)
+		Self.ReferenceSize += Style.pixelMetric(Style.PM_ButtonMargin) * 2
+		Self.setMaximumHeight(Self.ReferenceSize + 2)
+		Self.setMinimumHeight(Self.Title.height() + 12)
+
+		# Tool buttons (Min, Normal, Max, Close)
+		ButtonVisibility = {"min": UseMinButton, "normal": False, "max": UseMaxButton, "close": UseCloseButton}
+		ButtonSize = QSize(Self.ReferenceSize, Self.ReferenceSize)
+		for Target in ("min", "normal", "max", "close"):
+			Button = QToolButton(Self, focusPolicy=Qt.NoFocus)
+			Layout.addWidget(Button)
+			Button.setFixedSize(ButtonSize)
+
+			IconType = getattr(Style.StandardPixmap, "SP_TitleBar{}Button".format(Target.capitalize()))
+			
+			Button.setIcon(Style.standardIcon(IconType))
+			
+			if Target == "close":
+				ColorNormal = "gray"
+				ColorHover = "orangered"
+			else:
+				ColorNormal = "gray"
+				ColorHover = "white"
+
+			Button.setStyleSheet("QToolButton {{background-color: {};border: none; border-radius: 4px;}} QToolButton:hover {{background-color: {}}}".format(ColorNormal, ColorHover))
+
+			Signal = getattr(Self, Target + "Clicked")
+			Button.clicked.connect(Signal)
+
+			setattr(Self, Target + "Button", Button)
+
+			Button.setVisible(ButtonVisibility[Target])
+
+	# State of the window changed
+	def windowStateChanged(Self, State):
+		Self.normalButton.setVisible(State == Qt.WindowMaximized)
+		Self.maxButton.setVisible(State != Qt.WindowMaximized)
+
+	# Mouse pressed event
+	def mousePressEvent(Self, Event: QEvent):
+		if Event.button() == Qt.LeftButton:
+			Self.ClickPosition = Event.pos()
+
+	# Mouse moved event
+	def mouseMoveEvent(Self, Event: QEvent):
+		if Self.ClickPosition is not None:
+			Self.window().move(Self.window().pos() + Event.pos() - Self.ClickPosition)
+
+	# Mouse released event
+	def mouseReleaseEvent(Self, MouseEvent: QMouseEvent):
+		Self.ClickPosition = None
+
+	# Button Close clicked
+	def closeClicked(Self):
+		Self.window().close()
+
+	# Button Maximize clicked
+	def maxClicked(Self):
+		Self.window().showMaximized()
+
+	# Button Normal clicked
+	def normalClicked(Self):
+		Self.window().showNormal()
+
+	# Button Minimize clicked
+	def minClicked(Self):
+		Self.window().showMinimized()
+
+	# Size of the window changed
+	def resizeEvent(Self, Event: QEvent):
+		Self.Title.resize(Self.minButton.x() + Self.ReferenceSize * 3 + int(40 * gSizeRatio), Self.height())
+
+# Window bottom button bar
+class BottomBar(QWidget):
+	# Initialization of the title bar
+	def __init__(Self, Parent):
+		super(BottomBar, Self).__init__(Parent)
+
+		# Create bottom button box bar group box
+		Self.BottomBarGB = QGroupBox()
+		Self.BottomBarGB.setMaximumHeight(int(gAdjustedGuiSize["WidgetHeight"]) * 2)
+		Style = """
+		QGroupBox{
+			background-color: transparent;
+			border-top: 2px solid #222222;
+			border-left: none;
+			border-right: none;
+			border-bottom: none;
+			margin-top: 20px;
+		}
+			
+		QToolTip {
+			background-color: #eedd22;
+		}
+
+		QLabel {
+			font: ReplaceFontSizepx \"Bahnschrift SemiLight SemiConde\";
+			background-color: transparent;
+		}
+
+		QPushButton{
+			background-color: #222222;
+			color: #cccccc;
+			width: ReplaceButtonWidthpx;
+			height: ReplaceWidgetHeightpx;
+			border-style: solid;
+			border-radius: 8px;
+		}
+
+		QPushButton:hover{
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #373737, stop:0.505682 #373737, stop:1 #282828);
+			color: #cccccc;
+		}
+
+		QPushButton:pressed{
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #2d2d2d, stop:0.505682 #282828, stop:1 #2d2d2d);
+			color: #ffffff;
+		}
+		"""
+		Self.BottomBarGB.setStyleSheet(FinishStyle(Style))
+
+		# Add buttons OK and Cancel to bottom bar
+		BottomBarHBL = QHBoxLayout(Self.BottomBarGB)
+
+		# Version label
+		VersionL = QLabel("ⓘ " + SCRIPT_VERSION)
+		VersionL.setToolTip("""To get more information about each row, hold the pointer on its label.
+	\nSupport contacts
+	michal.vavrik@br-automation.com
+	adam.sefranek@br-automation.com
+	\nVersion 2.1.0
+	- PyGuiTemplate implemented
+	\nVersion 2.0.2
+	- Changes according to B&R Coding guidelines
+	\nVersion 2.0.1
+	- Once nested alarms path bug fixed
+	- Supported properties change
+	- Print of used configuration
+	- Invalid property name bug fixed
+	\nVersion 2.0.0
+	- New system of finding alarm paths
+	- Support of arrays (also defined by constants)
+	\nVersion 1.2.0
+	- Configuration of sections to update
+	- Configuration of TMX, MpConfig and program name
+	- Properties validity
+	- Strings must be in quotation marks
+	\nVersion 1.1.0
+	- Bug with default alarm behavior fixed
+	- Behavior.Monitoring.MonitoredPV bug fixed
+	- Tags are taken from the graphics editor
+	- Monitoring alarm types have no longer Set and Reset in the Alarms program
+	- Path to user data changed to AppData\Roaming\BR\Scripts\CreateAlarms\\
+	- Error mode added
+	\nVersion 1.0.0
+	- Script creation
+	- Basic functions implemented""")
+		BottomBarHBL.addWidget(VersionL, 0, Qt.AlignLeft)
+
+		Self.OkPB = QPushButton("OK")
+		BottomBarHBL.addWidget(Self.OkPB, 10, Qt.AlignRight)
+		Self.CancelPB = QPushButton("Cancel")
+		BottomBarHBL.addSpacing(10)
+		BottomBarHBL.addWidget(Self.CancelPB, 0, Qt.AlignRight)
+
+# Dialog for displaying info messages
+class InfoDialog(QDialog):
+	# Initialization of the dialog
+	def __init__(Self):
+		super(InfoDialog, Self).__init__()
+
+		# Create title bar
+		Self.TitleBar = TitleBar(Self, "Info", WINDOW_COLOR_STYLE, False, False, False)
+		Self.setContentsMargins(0, Self.TitleBar.height(), 0, 0)
+
+		# Set dialog styles
+		Style = """
+			QWidget{
+				background-color:qlineargradient(spread:pad, x1:1, y1:0, x2:1, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(20, 20, 20, 255));
+				color:#cccccc;
+				font: ReplaceFontSizepx \"Bahnschrift SemiLight SemiConde\";
+			}
+
+			QDialog{
+				border: 2px solid ReplaceColor;
+			}
+
+			QLabel{
+				background-color:transparent;
+				color:#888888;
+				qproperty-alignment: \'AlignVCenter | AlignCenter\';
+				padding: 10px;
+			}
+
+			QPushButton{
+				background-color: #222222;
+				width: ReplaceButtonWidthpx;
+				height: ReplaceWidgetHeightpx;
+				border-style:solid;
+				color:#cccccc;
+				border-radius:8px;
+			}
+
+			QPushButton:hover{
+				color:#cccccc;
+				background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(55, 55, 55, 255), stop:0.505682 rgba(55, 55, 55, 255), stop:1 rgba(40, 40, 40, 255));
+			}
+
+			QPushButton:pressed{
+				background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(45, 45, 45, 255), stop:0.505682 rgba(40, 40, 40, 255), stop:1 rgba(45, 45, 45, 255));
+				color:#ffffff;
+			}
+			"""
+		Self.setStyleSheet(FinishStyle(Style))
+
+		# Set general dialog settings
+		Self.setWindowTitle("Info")
+		Self.setWindowFlag(Qt.FramelessWindowHint)
+		Self.setGeometry(0, 0, 100, 100)
+		Self.setModal(True)
+
+		# Create widgets
+		MainVBL = QVBoxLayout(Self)
+
+		Self.MessageL = QLabel()
+		MainVBL.addWidget(Self.MessageL)
+		
+		ButtonBoxHBL = QHBoxLayout()
+		Self.OkPB = QPushButton()
+		Self.OkPB.setText("OK")
+		ButtonBoxHBL.addWidget(Self.OkPB)
+		
+		# Show dialog
+		MainVBL.addLayout(ButtonBoxHBL)
+
+	# Size of the window changed
+	def resizeEvent(Self, Event: QEvent):
+		Self.TitleBar.resize(Self.width(), Self.TitleBar.height())
+		Self.TitleBar.Title.setMinimumWidth(Self.width())
+
+# Dialog for displaying error messages
+class ErrorDialog(QDialog):
+	# Initialization of the dialog
+	def __init__(Self, Messages):
+		super(ErrorDialog, Self).__init__()
+
+		# Create title bar
+		Self.TitleBar = TitleBar(Self, "Error", "#6e1010", False, False, True)
+		Self.setContentsMargins(0, Self.TitleBar.height(), 0, 0)
+
+		# Set dialog styles
+		Style = """
+			QWidget{
+				background-color:qlineargradient(spread:pad, x1:1, y1:0, x2:1, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(20, 20, 20, 255));
+				color:#cccccc;
+				font: ReplaceFontSizepx \"Bahnschrift SemiLight SemiConde\";
+			}
+
+			QDialog{
+				border: 2px solid #6e1010;
+			}
+
+			QLabel{
+				background-color:transparent;
+				color:#888888;
+				padding: 5px;
+			}
+			"""
+		Self.setStyleSheet(FinishStyle(Style))
+
+		# Set general dialog settings
+		Self.setWindowTitle("Error")
+		Self.setWindowFlag(Qt.FramelessWindowHint)
+		Self.setGeometry(0, 0, 100, 100)
+
+		# Create widgets
+		DialogVBL = QVBoxLayout(Self)
+
+		for Message in Messages:
+			ErrorL = QLabel(Message)
+			ErrorL.setOpenExternalLinks(True)
+			DialogVBL.addWidget(ErrorL)
+	
+		# Show dialog
+		ShowAdjusted(Self)
+
+	# Size of the window changed
+	def resizeEvent(Self, Event: QEvent):
+		Self.TitleBar.resize(Self.width(), Self.TitleBar.height())
+		Self.TitleBar.Title.setMinimumWidth(Self.width())
+
 #####################################################################################################################################################
 # Global functions
 #####################################################################################################################################################
+# Show widget with adjusted size
+def ShowAdjusted(Widget: QWidget):
+	# Adjust window size and position (must be twice to really adjust the size)
+	Widget.adjustSize()
+	Widget.adjustSize()
+	Rectangle = Widget.frameGeometry()
+	CenterPoint = QDesktopWidget().availableGeometry().center()
+	Rectangle.moveCenter(CenterPoint)
+	Widget.move(Rectangle.topLeft())
+	Widget.show()
+
+# Finish style with defined constants
+def FinishStyle(Style: str):
+	Style = Style.replace("ReplaceColor", WINDOW_COLOR_STYLE)
+	for DefaultSizeElement in DEFAULT_GUI_SIZE:
+		Style = Style.replace("Replace" + DefaultSizeElement, gAdjustedGuiSize[DefaultSizeElement])
+	return Style
+
 # Terminates the script
 def TerminateScript():
 	# Ouput window message
@@ -1076,383 +1739,6 @@ def UpdateProgram():
 		AlarmsTypFile.write(AlarmsTypText)
 		AlarmsTypFile.close()
 
-# Configuration: Configuration accepted
-def AcceptConfiguration(Config, Debug, UpdateTmx, UpdateMpConfig, UpdateProgram, TmxName, MpConfigName, ProgramName):
-	if (TmxName != "") and (MpConfigName != "") and (ProgramName != "") and (MpConfigName != ProgramName):
-		UserData["Configuration"] = Config
-		UserData["Debug"] = Debug
-		UserData["UpdateTmx"] = UpdateTmx
-		UserData["UpdateMpConfig"] = UpdateMpConfig
-		UserData["UpdateProgram"] = UpdateProgram
-		UserData["TmxName"] = TmxName
-		UserData["MpConfigName"] = MpConfigName
-		UserData["ProgramName"] = ProgramName
-		
-		with open(UserDataPath, "wb") as CreateAlarmsSettings:
-			pickle.dump(UserData, CreateAlarmsSettings)
-		sys.exit()
-
-# Configuration mode function
-def Configuration():
-	# Load configurations name
-	ConfigName = []
-	ConfigPath = os.path.dirname(os.path.abspath(__file__))
-	if (ConfigPath.find("Logical") != -1):
-		ConfigPath = ConfigPath[:ConfigPath.find("Logical")]
-		for Physical in os.listdir(ConfigPath):
-			if (Physical.find("Physical") != -1):
-				ConfigPath += "Physical"
-				for Config in os.listdir(ConfigPath):
-					if not(Config.endswith(".pkg")):
-						ConfigName.append(Config)
-				break
-	
-	# Create dialog gui
-	Gui = QApplication([])
-	Dialog = QDialog()
-	Dialog.setStyleSheet("""
-		QWidget{
-			background-color:qlineargradient(spread:pad, x1:1, y1:0, x2:1, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(20, 20, 20, 255));
-			color:#cccccc;
-			font: 24px \"Bahnschrift SemiLight SemiConde\";
-		}
-		
-		QLabel{
-			background-color:transparent;
-			color:#888888;
-		}
-
-		QLineEdit{
-			background-color:#3d3d3d;
-			color:#cccccc;
-			border:6;
-			padding-left:10px;
-			height: 50px;
-			border-radius:8px;
-		}
-
-		QLineEdit:hover{
-			color:#cccccc;
-			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(55, 55, 55, 255), stop:0.505682 rgba(55, 55, 55, 255), stop:1 rgba(40, 40, 40, 255));
-		}
-
-		QComboBox{
-			background-color: #3d3d3d;
-			color: #cccccc;
-			border: none;
-			border-radius: 8px;
-			padding: 10px;
-			position: center;
-		}
-
-		QComboBox:hover{
-			color:#cccccc;
-			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(55, 55, 55, 255), stop:0.505682 rgba(55, 55, 55, 255), stop:1 rgba(40, 40, 40, 255));
-		}
-
-		QComboBox::drop-down {
-			background-color: transparent;
-		}
-
-		QComboBox QAbstractItemView {
-			color: #cccccc;
-			background-color: #3d3d3d;
-		}
-
-		QDialogButtonBox::StandardButton *{
-			background-color: #222222;
-			width: 180px;
-			height: 50px;
-		}
-
-		QCheckBox{
-			border-style:none;
-			background-color:transparent;
-		}
-
-		QCheckBox::indicator{
-			top: 2px;
-			width: 50px;
-			height: 50px;
-			background-color: #3d3d3d;
-			border-radius:8px;
-			margin-bottom: 4px;
-		}
-
-		QCheckBox::indicator:hover{
-			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(55, 55, 55, 255), stop:0.505682 rgba(55, 55, 55, 255), stop:1 rgba(40, 40, 40, 255));
-		}
-
-		QCheckBox::indicator:checked{
-			background-color:qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #095209, stop:1 #0e780e);
-		}
-
-		QPushButton{
-			border-style:solid;
-			background-color:#3d3d3d;
-			color:#cccccc;
-			border-radius:8px;
-		}
-
-		QPushButton:hover{
-			color:#cccccc;
-			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(55, 55, 55, 255), stop:0.505682 rgba(55, 55, 55, 255), stop:1 rgba(40, 40, 40, 255));
-		}
-
-		QPushButton:pressed{
-			background-color:qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(45, 45, 45, 255), stop:0.505682 rgba(40, 40, 40, 255), stop:1 rgba(45, 45, 45, 255));
-			color:#ffffff;
-		}
-
-		QPushButton:checked{
-			background-color:qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #095209, stop:1 #0e780e);
-			color:#ffffff;
-		}
-
-		QToolTip{
-			font: 16px \"Bahnschrift SemiLight SemiConde\";
-			background-color:#eedd22;
-			color:#111111;
-			border: solid black 1px;
-		}
-
-		QGroupBox{
-			border-left: 2px solid;
-			border-right: 2px solid;
-			border-bottom: 2px solid;
-			border-color: #362412;
-			margin-top: 38px;
-			border-radius: 0px;
-		}
-
-		QGroupBox::title{
-			subcontrol-origin: margin;
-			subcontrol-position: top center;
-			padding: 5px 8000px;
-			background-color: #362412;
-		}
-		"""
-		)
-
-	# Dialog.setWindowFlag(Qt.FramelessWindowHint) # Borderless window
-	Dialog.setWindowTitle(" ")
-	Dialog.setGeometry(0, 0, 500, 300)
-
-	# Center window
-	Rectangle = Dialog.frameGeometry()
-	CenterPoint = QDesktopWidget().availableGeometry().center()
-	Rectangle.moveCenter(CenterPoint)
-	Dialog.move(Rectangle.topLeft())
-
-	# Creating a group box
-	FormGroupBox = QGroupBox("Welcome to CreateAlarms configuration", parent=Dialog)
-
-	# Creating a form layout
-	Layout = QFormLayout(parent=FormGroupBox)
-	Layout.setHorizontalSpacing(20)
-
-	#####################################################################################################################################################
-	# Update alarms program
-	#####################################################################################################################################################
-
-	# Configuration selection
-	ConfigComboBox = QComboBox()
-	ConfigComboBox.addItems(ConfigName)
-	ConfigComboBox.setToolTip("Select configuration with .mpalarmxcore file")
-	ConfigComboBox.setCurrentText(UserData["Configuration"])
-	ConfigLabel = QLabel("Select configuration")
-	ConfigLabel.setToolTip("Select configuration with .mpalarmxcore file")
-	Layout.addRow(ConfigLabel, ConfigComboBox)
-
-	# Debug option
-	DebugPushButton = QPushButton("DEBUG")
-	DebugPushButton.setToolTip("Turns on printing of debug messages")
-	DebugPushButton.setCheckable(True)
-	DebugPushButton.setChecked(UserData["Debug"])
-	DebugPushButton.setFixedHeight(50)
-	DebugLabel = QLabel("Turn on debugging")
-	DebugLabel.setToolTip("Turns on printing of debug messages")
-	Layout.addRow(DebugLabel, DebugPushButton)
-
-	# Tmx name
-	TmxNameLineEdit = QLineEdit()
-	TmxNameLineEdit.setToolTip("Name of the tmx file without .tmx extension")
-	TmxNameLineEdit.setText(UserData["TmxName"])
-	TmxNameLineEdit.setFixedHeight(50)
-	TmxNameLabel = QLabel("Tmx name")
-	TmxNameLabel.setToolTip("Name of the tmx file without .tmx extension")
-	TmxExtensionLabel = QLabel(".tmx")
-	TmxExtensionLabel.setToolTip("Name of the tmx file without .tmx extension")
-	TmxNameRow = QHBoxLayout()
-	TmxNameRow.addWidget(TmxNameLineEdit)
-	TmxNameRow.addSpacing(10)
-	TmxNameRow.addWidget(TmxExtensionLabel)
-	Layout.addRow(TmxNameLabel, TmxNameRow)
-
-	# MpConfig name
-	MpConfigNameLineEdit = QLineEdit()
-	MpConfigNameLineEdit.setToolTip("Name of the MpConfig file without .mpalarmxcore extension (cannot be same as program name)")
-	MpConfigNameLineEdit.setText(UserData["MpConfigName"])
-	MpConfigNameLineEdit.setFixedHeight(50)
-	MpConfigNameLabel = QLabel("MpConfig name")
-	MpConfigNameLabel.setToolTip("Name of the MpConfig file without .mpalarmxcore extension (cannot be same as program name)")
-	MpConfigExtensionLabel = QLabel(".mpalarmxcore")
-	MpConfigExtensionLabel.setToolTip("Name of the MpConfig file without .mpalarmxcore extension (cannot be same as program name)")
-	MpConfigNameRow = QHBoxLayout()
-	MpConfigNameRow.addWidget(MpConfigNameLineEdit)
-	MpConfigNameRow.addSpacing(10)
-	MpConfigNameRow.addWidget(MpConfigExtensionLabel)
-	Layout.addRow(MpConfigNameLabel, MpConfigNameRow)
-
-	# Program name
-	ProgramNameLineEdit = QLineEdit()
-	ProgramNameLineEdit.setToolTip("Name of the program file without .st/.c extension (cannot be same as MpConfig name)")
-	ProgramNameLineEdit.setText(UserData["ProgramName"])
-	ProgramNameLineEdit.setFixedHeight(50)
-	ProgramNameLabel = QLabel("Program name")
-	ProgramNameLabel.setToolTip("Name of the program file without .st/.c extension (cannot be same as MpConfig name)")
-	ProgramExtensionLabel = QLabel(".st/.c")
-	ProgramExtensionLabel.setToolTip("Name of the program file without .st/.c extension (cannot be same as MpConfig name)")
-	ProgramNameRow = QHBoxLayout()
-	ProgramNameRow.addWidget(ProgramNameLineEdit)
-	ProgramNameRow.addSpacing(10)
-	ProgramNameRow.addWidget(ProgramExtensionLabel)
-	Layout.addRow(ProgramNameLabel, ProgramNameRow)
-
-	# Sections update
-	UpdateTmxCheckBox = QCheckBox("Update TMX")
-	UpdateTmxCheckBox.setToolTip("The script will update the TMX file every build")
-	UpdateTmxCheckBox.setFixedHeight(50)
-	UpdateTmxCheckBox.setChecked(UserData["UpdateTmx"])
-	UpdateMpConfigCheckBox = QCheckBox("Update MpConfig")
-	UpdateMpConfigCheckBox.setToolTip("The script will update the MpAlarmXCore file every build")
-	UpdateMpConfigCheckBox.setFixedHeight(50)
-	UpdateMpConfigCheckBox.setChecked(UserData["UpdateMpConfig"])
-	UpdateProgramCheckBox = QCheckBox("Update Set/Reset")
-	UpdateProgramCheckBox.setToolTip("The script will update the .st/.c program file every build")
-	UpdateProgramCheckBox.setFixedHeight(50)
-	UpdateProgramCheckBox.setChecked(UserData["UpdateProgram"])
-	UpdateSectionRow = QHBoxLayout()
-	UpdateSectionRow.addWidget(UpdateTmxCheckBox)
-	UpdateSectionRow.addSpacing(10)
-	UpdateSectionRow.addWidget(UpdateMpConfigCheckBox)
-	UpdateSectionRow.addSpacing(10)
-	UpdateSectionRow.addWidget(UpdateProgramCheckBox)
-	Layout.addRow(UpdateSectionRow)
-
-	# Creating a dialog button for ok and cancel
-	FormButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-
-	# Version label
-	VersionLabel = QLabel("ⓘ " + ScriptVersion, parent=FormButtonBox)
-	VersionLabel.move(0, 10)
-	VersionLabel.setStyleSheet("QLabel{font: 20px \"Bahnschrift SemiLight SemiConde\"; background-color: transparent;} QToolTip{background-color:#eedd22;}")
-	VersionLabel.setToolTip("""To get more information about each row, hold the pointer on its label.
-	\nSupport contacts
-	michal.vavrik@br-automation.com
-	adam.sefranek@br-automation.com
-	\nVersion 2.0.2
-	- Changes according to B&R Coding guidelines
-	\nVersion 2.0.1
-	- Once nested alarms path bug fixed
-	- Supported properties change
-	- Print of used configuration
-	- Invalid property name bug fixed
-	\nVersion 2.0.0
-	- New system of finding alarm paths
-	- Support of arrays (also defined by constants)
-	\nVersion 1.2.0
-	- Configuration of sections to update
-	- Configuration of TMX, MpConfig and program name
-	- Properties validity
-	- Strings must be in quotation marks
-	\nVersion 1.1.0
-	- Bug with default alarm behavior fixed
-	- Behavior.Monitoring.MonitoredPV bug fixed
-	- Tags are taken from the graphics editor
-	- Monitoring alarm types have no longer Set and Reset in the Alarms program
-	- Path to user data changed to AppData\Roaming\BR\Scripts\CreateAlarms\\
-	- Error mode added
-	\nVersion 1.0.0
-	- Script creation
-	- Basic functions implemented""")
-
-	# Adding actions for form
-	FormButtonBox.accepted.connect(lambda: AcceptConfiguration(ConfigComboBox.currentText(), DebugPushButton.isChecked(), UpdateTmxCheckBox.isChecked(), UpdateMpConfigCheckBox.isChecked(), UpdateProgramCheckBox.isChecked(), TmxNameLineEdit.text(), MpConfigNameLineEdit.text(), ProgramNameLineEdit.text()))
-	FormButtonBox.rejected.connect(Dialog.reject)
-	TmxNameLineEdit.textChanged.connect(lambda: TextInputCheck(TmxNameLineEdit))
-	MpConfigNameLineEdit.textChanged.connect(lambda: TextInputCheck(MpConfigNameLineEdit, ProgramNameLineEdit))
-	ProgramNameLineEdit.textChanged.connect(lambda: TextInputCheck(ProgramNameLineEdit, MpConfigNameLineEdit))
-
-	# Creating a vertical layout
-	MainLayout = QVBoxLayout()
-
-	# Adding form group box to the layout
-	MainLayout.addWidget(FormGroupBox)
-
-	# Adding button box to the layout
-	MainLayout.addWidget(FormButtonBox)
-	
-	# Setting lay out
-	Dialog.setLayout(MainLayout)
-
-	# Show dialog
-	Dialog.show()
-	Gui.exec()
-
-# Text inputs condition check
-def TextInputCheck(TextInput1: QLineEdit, TextInput2: QLineEdit = None):
-	if (TextInput1.text() == ""):
-		TextInput1.setStyleSheet("QLineEdit{background:#661111;}")
-	else:
-		TextInput1.setStyleSheet("")
-
-	if TextInput2 != None:
-		if (TextInput2.text() == ""):
-			TextInput2.setStyleSheet("QLineEdit{background:#661111;}")
-		else:
-			TextInput2.setStyleSheet("")
-
-		if (TextInput1.text() == TextInput2.text()):
-			TextInput1.setStyleSheet("QLineEdit{background:#661111;}")
-			TextInput2.setStyleSheet("QLineEdit{background:#661111;}")
-
-# Logical folder not found -> show error message
-def LogicalNotFoundMessage():
-	# Create dialog gui
-	Gui = QApplication([])
-	Dialog = QDialog()
-	Dialog.setStyleSheet("""
-		QWidget{
-			background-color:qlineargradient(spread:pad, x1:1, y1:0, x2:1, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(20, 20, 20, 255));
-			color:#cccccc;
-			font: 24px \"Bahnschrift SemiLight SemiConde\";
-		}
-		
-		QLabel{
-			background-color:transparent;
-			color:#bb2222;
-			padding: 10px;
-		}""")
-	Dialog.setWindowTitle("Error")
-	Dialog.setGeometry(0, 0, 500, 120)
-
-	# Center window
-	Rectangle = Dialog.frameGeometry()
-	CenterPoint = QDesktopWidget().availableGeometry().center()
-	Rectangle.moveCenter(CenterPoint)
-	Dialog.move(Rectangle.topLeft())
-
-	# Creating a group box
-	ErrorLabel = QLabel("Directory Logical not found. Please copy this script to the LogicalView of your project.", parent=Dialog)
-	ErrorLabel.setGeometry(0, 0, 500, 120)
-	ErrorLabel.setWordWrap(True)
-	ErrorLabel.setAlignment(QtCore.Qt.AlignTop)
-	
-	# Show dialog
-	Dialog.show()
-	Gui.exec()
-
 #####################################################################################################################################################
 # Main
 #####################################################################################################################################################
@@ -1473,7 +1759,7 @@ else:
 	# Argument -prebuild not found
 	RunMode = MODE_CONFIGURATION
 
-if not RunMode == MODE_ERROR:
+if not(RunMode == MODE_ERROR):
 	# Get path to user data
 	UserDataPath = os.path.join(os.getenv("APPDATA"), "BR", "Scripts", "CreateAlarms", ProjectName)
 	if not os.path.isdir(os.path.dirname(UserDataPath)):
@@ -1496,7 +1782,7 @@ if not RunMode == MODE_ERROR:
 if RunMode == MODE_PREBUILD:
 	
 	# Ouput window message
-	print("----------------------- Beginning of the script CreateAlarms " + ScriptVersion + " -----------------------")
+	print("----------------------- Beginning of the script CreateAlarms " + SCRIPT_VERSION + " -----------------------")
 	if UserData["Configuration"] != "":
 		UsedConfiguration = UserData["Configuration"]
 	else:
@@ -1513,8 +1799,33 @@ if RunMode == MODE_PREBUILD:
 	# Ouput window message
 	print("--------------------------------- End of the script CreateAlarms ---------------------------------")
 
-elif RunMode == MODE_CONFIGURATION:
-	Configuration()
+else:
+	# Make application
+	Application = QApplication(sys.argv)
 
-elif RunMode == MODE_ERROR:
-	LogicalNotFoundMessage()
+	# Get size ratio (get the width of the screen and divide it by 1920, because that's the size for which this GUI was designed)
+	gSizeRatio = Application.primaryScreen().availableGeometry().width() / 1920
+	# Calculate adjusted sizes
+	for DefaultSizeElement in DEFAULT_GUI_SIZE:
+		gAdjustedGuiSize[DefaultSizeElement] = str(DEFAULT_GUI_SIZE[DefaultSizeElement] * gSizeRatio)[:str(DEFAULT_GUI_SIZE[DefaultSizeElement] * gSizeRatio).find(".")]
+
+	if RunMode == MODE_CONFIGURATION:
+		# Load configurations name
+		ConfigName = []
+		ConfigPath = os.path.dirname(os.path.abspath(__file__))
+		if (ConfigPath.find("Logical") != -1):
+			ConfigPath = ConfigPath[:ConfigPath.find("Logical")]
+			for Physical in os.listdir(ConfigPath):
+				if (Physical.find("Physical") != -1):
+					ConfigPath += "Physical"
+					for Config in os.listdir(ConfigPath):
+						if not(Config.endswith(".pkg")):
+							ConfigName.append(Config)
+					break
+		
+		Window = MainWindow()
+
+	elif RunMode == MODE_ERROR:
+		Window = ErrorDialog(["Directory Logical not found. Please copy this script to the LogicalView of your project."])
+		
+	sys.exit(Application.exec())
