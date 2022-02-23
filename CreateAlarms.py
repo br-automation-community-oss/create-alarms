@@ -936,6 +936,7 @@ def GetAlarms():
 
 	# Parse properties of alarms
 	Alarms = ParseProperties(Alarms)
+	Alarms = SortByCode(Alarms)
 
 	DebugPrint("Alarms", Alarms)
 
@@ -1183,6 +1184,14 @@ def CreateAlarms(GlobalTypes, AlarmPaths):
 				GlobalType["Description2"] = GlobalType["Description2"].replace("Disabled", "0")
 				Alarms.append({"Variable": GlobalType["Name"], "Array": GlobalType["Array"], "Path": AlarmPath, "Severity": Severity, "Properties": GlobalType["Description2"]})
 	return Alarms
+
+# Returd code of given alarm or 0 if property is not defined
+def GetCode(Alarm) -> int:
+	return next((int(Property["Value"]) for Property in Alarm["Properties"] if Property["Key"] == "Code"), 0)
+
+# Sort alarms by 'code' property
+def SortByCode(Alarms):
+	return sorted(Alarms, key=lambda x: (GetCode(x), x["Variable"]))
 
 # Parse properties of alarms
 def ParseProperties(Alarms):
