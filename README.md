@@ -69,6 +69,7 @@ Properties Name and Message are generated automatically.
 ## Version info
 __Version 2.1.0__
 - PyGuiTemplate implemented
+- Tmx encoding improved
 
 __Version 2.0.2__
 - Changes according to B&R Coding guidelines

@@ -618,6 +618,7 @@ class BottomBar(QWidget):
 	adam.sefranek@br-automation.com
 	\nVersion 2.1.0
 	- PyGuiTemplate implemented
+	- Tmx encoding improved
 	\nVersion 2.0.2
 	- Changes according to B&R Coding guidelines
 	\nVersion 2.0.1
@@ -780,6 +781,18 @@ class ErrorDialog(QDialog):
 #####################################################################################################################################################
 # Global functions
 #####################################################################################################################################################
+# Get whole header of xml file
+def GetXmlHeader(FilePath):
+	Header = ""
+	File = open(FilePath,"r", encoding = "utf-8")
+	for Line in File:
+		if ("<?" in Line) and ("?>" in Line):
+			Header += Line
+		else:
+			break
+	File.close()
+	return Header
+
 # Show widget with adjusted size
 def ShowAdjusted(Widget: QWidget):
 	# Adjust window size and position (must be twice to really adjust the size)
@@ -1484,15 +1497,25 @@ def UpdateTmx():
 	DebugPrint("New alarms", NewAlarms)
 	DebugPrint("Missing alarms", MissingAlarms)
 
+	# Get header of xml
+	TmxHeader = GetXmlHeader(TmxPath)
+
 	# Remove missing alarms
 	Parent = TmxRoot.find(".//body")
 	for TmxAlarm in Parent.findall(".//tu"):
 		if TmxAlarm.get('tuid') in MissingAlarms:
 			Parent.remove(TmxAlarm)
-	TmxTree.write(TmxPath)
+
+	# Convert xml to text
+	TmxTextCleaned = et.tostring(TmxRoot, encoding="utf-8").decode()
+
+	# Write header and xml text to the .hw file
+	TmxFileCleaned = open(TmxPath,"w", encoding="utf-8")
+	TmxFileCleaned.write(TmxHeader + TmxTextCleaned)
+	TmxFileCleaned.close()
 
 	# Add new alarms
-	TmxFile = open(TmxPath, "r")
+	TmxFile = open(TmxPath, "r", encoding="utf-8")
 	TmxText = ""
 	for TmxLine in TmxFile:
 		if (TmxLine.find("<body />") != -1): # End found
@@ -1506,7 +1529,7 @@ def UpdateTmx():
 				TmxText += "\t<tu tuid=\"" + NewAlarm + "\" />\n"
 		TmxText += TmxLine
 	TmxFile.close()
-	TmxFile = open(TmxPath,"w")
+	TmxFile = open(TmxPath,"w", encoding = "utf-8")
 	TmxFile.write(TmxText)
 	TmxFile.close()
 
