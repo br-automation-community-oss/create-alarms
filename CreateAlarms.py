@@ -619,6 +619,7 @@ class BottomBar(QWidget):
 	\nVersion 2.1.0
 	- PyGuiTemplate implemented
 	- Tmx encoding improved
+	- Sorting alarms by code and variable name
 	\nVersion 2.0.2
 	- Changes according to B&R Coding guidelines
 	\nVersion 2.0.1
