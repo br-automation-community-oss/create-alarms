@@ -71,6 +71,7 @@ __Version 2.1.0__
 - PyGuiTemplate implemented
 - Tmx encoding improved
 - Sorting alarms by code and variable name
+- Not resetting of Edge alarms (its automatic)
 
 __Version 2.0.2__
 - Changes according to B&R Coding guidelines
