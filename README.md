@@ -31,7 +31,7 @@ __Note: The CreateAlarms script is fully compatible with the AddTask script. Whe
 6. Alarms.tmx must has namespace "Alarms"
 7. In the configuration selected in the script configuration, there must be AlarmsCfg.mpalarmxcore file
 8. Alarms in Global.typ have to meet this requirements
-- Alarms are divided into Error, Warning and Info groups (each data type containing the word "Error", "Warning" or "Info" is taken as an alarm data type and is taken into account when generating the code)
+- Alarms are divided into Error, Warning and Info groups (each data type containing the word "Error", "Warning" or "Info" is taken as an alarm data type and is taken into account when generating the code (keywords can be changed in script configuration))
 - Alarms have to be BOOL types
 - Properties of alarms must be written into the Description[2] column and separated by semicolon or comma (supported properties see below)
 
@@ -67,6 +67,10 @@ Properties Name and Message are generated automatically.
 | AdditionalInformation2								| string                                                         |
 
 ## Version info
+__Version 2.2.0__
+- Possibility of choosing keywords for alarms (Error, Warning, Info)
+- Behavior.Acknowledge replacing bug fixed
+
 __Version 2.1.0__
 - PyGuiTemplate implemented
 - Tmx encoding improved
