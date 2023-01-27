@@ -19,12 +19,22 @@ import pickle
 # Global constants and variables
 #####################################################################################################################################################
 # General
-WINDOW_TITLE = "GUI Template"
+WINDOW_TITLE = "Create alarms"
 SCRIPT_VERSION = "2.2.0"
 
 # Window style
-WINDOW_COLOR_STYLE = "#4a2c0d"
-DEFAULT_GUI_SIZE = {"TitleFontSize": 30, "FontSize": 24, "TooltipFontSize": 16, "WidgetHeight": 50, "ButtonWidth": 180}
+DEFAULT_GUI_FONT = "Bahnschrift SemiLight SemiConde"
+DEFAULT_GUI_SIZE = {"TitleFont": 30, "Font": 24, "TooltipFont": 16, "WidgetHeight": 50, "ButtonWidth": 180}
+DEFAULT_GUI_COLOR = {"WindowBorderStandard": "#111111",
+					"WindowBorderError": "#6e1010",
+					"Background": "#444444",
+					"BackgroundInput": "#222222",
+					"BackgroundOutput": "transparent",
+					"ColorTitle": "#cccccc",
+					"ColorInput": "#cccccc",
+					"ColorOutput": "#ffffff",
+					"ColorCheckBox": "#0e880e",
+					"InputError": "#ee0000"}
 gSizeRatio = 1
 gAdjustedGuiSize = {}
 
@@ -162,7 +172,7 @@ class MainWindow(QWidget):
 		Self.setWindowTitle(WINDOW_TITLE)
 
 		# Create title bar
-		Self.TitleBar = TitleBar(Self, WINDOW_TITLE, WINDOW_COLOR_STYLE, True, True, True)
+		Self.TitleBar = TitleBar(Self, WINDOW_TITLE, DEFAULT_GUI_COLOR["WindowBorderStandard"], True, True, True)
 		Self.setContentsMargins(0, Self.TitleBar.height(), 0, 0)
 
 		# Create bottom button bar
@@ -178,60 +188,111 @@ class MainWindow(QWidget):
 		# Set window styles
 		Style = """
 		QWidget {
-			background-color: qlineargradient(spread:pad, x1:1, y1:0, x2:1, y2:1, stop:0 #000000, stop:1 #141414);
-			color: #cccccc;
-			font: ReplaceFontSizepx \"Bahnschrift SemiLight SemiConde\";
+			background-color: >>Background<<;
+			color: >>ColorInput<<;
+			font: >>Font<<px ">>StandardFont<<";
 		}
 
 		QGroupBox {
-			border: 2px solid;
-			border-color: ReplaceColor;
+			border: 2px solid >>WindowBorderStandard<<;
+			border-top: 0px;
+		}
+
+		QTabWidget::pane {
+			border-top: 2px solid #222222;
+			background: rgb(245, 245, 245);
+		}
+
+		QTabBar::disabled {
+			color: #555555;
+		}
+
+		QTabBar::tab::disabled {
+			background-color: #3d3d3d;
+		}
+
+		QTabBar::tab {
+			background-color: #353535;
+			padding: 10px;
+			margin-right: 4px;
+			margin-bottom: 4px;
+			border-radius: 12px;
+		}
+
+		QTabBar::tab:selected {
+			background: #222222;
+			color: #dddddd;
+			margin-bottom: 0px;
+			border-bottom-left-radius: 0px;
+			border-bottom-right-radius: 0px;
+		}
+
+		QTabBar::tab:last {
+			font: ReplaceFontSizepx "Bahnschrift SemiLight SemiConde";
+			background-color: transparent;
+			border-style: none;
+			color: #888888;
 		}
 
 		QToolTip {
 			background-color: #eedd22;
 			color: #111111;
-			font: ReplaceTooltipFontSizepx \"Bahnschrift SemiLight SemiConde\";
+			font: >>TooltipFont<<px ">>StandardFont<<";
 			border: solid black 1px;
 		}
 
 		QLabel {
-			background-color: transparent;
-			color: #888888;
+			background-color: >>BackgroundOutput<<;
+			color: >>ColorOutput<<;
+			padding: 5px;
+			border-radius: 8px;
 		}
 
 		QLineEdit {
-			background-color: #3d3d3d;
-			color: #cccccc;
+			background-color: >>BackgroundInput<<;
+			color: >>ColorInput<<;
 			border-radius: 8px;
 			padding-left: 10px;
-			height: ReplaceWidgetHeightpx;
+			height: >>WidgetHeight<<px;
 		}
 
 		QLineEdit:hover {
 			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #373737, stop:0.505682 #373737, stop:1 #282828);
-			color: #cccccc;
+			color: >>ColorInput<<;
+		}
+
+		QPlainTextEdit {
+			background-color: >>BackgroundInput<<;
+			color: >>ColorInput<<;
+			border-radius: 8px;
+			padding-left: 10px;
+			padding-top: 10px;
+		}
+
+		QPlainTextEdit:hover {
+			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #373737, stop:0.505682 #373737, stop:1 #282828);
+			color: >>ColorInput<<;
 		}
 
 		QPushButton {
-			background-color: #3d3d3d;
-			color: #cccccc;
-			width: ReplaceButtonWidthpx;
-			height: ReplaceWidgetHeightpx;
+			background-color: >>BackgroundInput<<;
+			color: >>ColorInput<<;
+			width: >>ButtonWidth<<px;
+			height: >>WidgetHeight<<px;
 			border-style: solid;
 			border-radius: 8px;
 		}
 
 		QPushButton:hover {
 			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #373737, stop:0.505682 #373737, stop:1 #282828);
-			color: #cccccc;
+			color: >>ColorInput<<;
 		}
 
 		QPushButton:pressed {
 			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #2d2d2d, stop:0.505682 #282828, stop:1 #2d2d2d);
 			color: #ffffff;
 		}
-		
+
 		QPushButton:checked {
 			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #095209, stop:1 #0e780e);
 			color:#ffffff;
@@ -251,10 +312,10 @@ class MainWindow(QWidget):
 		}
 
 		QCheckBox::indicator {
-			background-color: #3d3d3d;
+			background-color: >>BackgroundInput<<;
 			top: 2px;
-			width: ReplaceWidgetHeightpx;
-			height: ReplaceWidgetHeightpx;
+			width: >>WidgetHeight<<px;
+			height: >>WidgetHeight<<px;
 			border-radius: 8px;
 			margin-bottom: 4px;
 		}
@@ -266,9 +327,9 @@ class MainWindow(QWidget):
 		QCheckBox::indicator:pressed {
 			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #2d2d2d, stop:0.505682 #282828, stop:1 #2d2d2d);
 		}
-		
+
 		QCheckBox::indicator:checked {
-			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #095209, stop:1 #0e780e);
+			background-color: >>ColorCheckBox<<;
 		}
 
 		QCheckBox::indicator:checked:hover {
@@ -280,9 +341,9 @@ class MainWindow(QWidget):
 		}
 
 		QComboBox {
-			background-color: #3d3d3d;
-			color: #cccccc;
-			height: ReplaceWidgetHeightpx;
+			background-color: >>BackgroundInput<<;
+			color: >>ColorInput<<;
+			height: >>WidgetHeight<<px;
 			border: none;
 			border-radius: 8px;
 			padding-left: 10px;
@@ -290,19 +351,19 @@ class MainWindow(QWidget):
 
 		QComboBox:hover {
 			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #373737, stop:0.505682 #373737, stop:1 #282828);
-			color: #cccccc;
+			color: >>ColorInput<<;
 		}
-		
+
 		QComboBox::drop-down {
-			background-color: #282828;
+			background-color: gray;
 			width: 20px;
 			border-top-right-radius: 8px;
 			border-bottom-right-radius: 8px;
 		}
 
 		QComboBox QAbstractItemView {
-			background-color: #3d3d3d;
-			color: #cccccc;
+			background-color: >>BackgroundInput<<;
+			color: >>ColorInput<<;
 		}
 		"""
 		Self.setStyleSheet(FinishStyle(Style))
@@ -512,8 +573,17 @@ class TitleBar(QWidget):
 
 		# Label title
 		Self.Title = QLabel(WindowTitle, Self, alignment = Qt.AlignCenter)
-		Style = "background-color: ReplaceColor; color: #cccccc; font: ReplaceTitleFontSizepx \"Bahnschrift SemiLight SemiConde\"; padding-top: 4px;".replace("ReplaceColor", TitleColor)
-		Self.Title.setStyleSheet(FinishStyle(Style))
+		Style = """
+		QLabel {
+			background-color: >>TitleBarColor<<;
+			color: >>ColorTitle<<;
+			font: >>TitleFont<<px ">>StandardFont<<";
+			padding-top: 4px;
+			border-radius: 0px;
+			border-bottom: 2px solid #ff8000;
+		}
+		"""
+		Self.Title.setStyleSheet(FinishStyle(Style.replace(">>TitleBarColor<<", TitleColor)))
 		Self.Title.adjustSize()
 
 		# Appearance definition
@@ -600,7 +670,7 @@ class BottomBar(QWidget):
 		Self.BottomBarGB = QGroupBox()
 		Self.BottomBarGB.setMaximumHeight(int(gAdjustedGuiSize["WidgetHeight"]) * 2)
 		Style = """
-		QGroupBox{
+		QGroupBox {
 			background-color: transparent;
 			border-top: 2px solid #222222;
 			border-left: none;
@@ -614,25 +684,25 @@ class BottomBar(QWidget):
 		}
 
 		QLabel {
-			font: ReplaceFontSizepx \"Bahnschrift SemiLight SemiConde\";
 			background-color: transparent;
+			font: >>Font<<px ">>StandardFont<<";
 		}
 
-		QPushButton{
+		QPushButton {
 			background-color: #222222;
-			color: #cccccc;
-			width: ReplaceButtonWidthpx;
-			height: ReplaceWidgetHeightpx;
+			color: >>ColorInput<<;
+			width: >>ButtonWidth<<px;
+			height: >>WidgetHeight<<px;
 			border-style: solid;
 			border-radius: 8px;
 		}
 
-		QPushButton:hover{
+		QPushButton:hover {
 			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #373737, stop:0.505682 #373737, stop:1 #282828);
-			color: #cccccc;
+			color: >>ColorInput<<;
 		}
 
-		QPushButton:pressed{
+		QPushButton:pressed {
 			background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 #2d2d2d, stop:0.505682 #282828, stop:1 #2d2d2d);
 			color: #ffffff;
 		}
@@ -651,6 +721,7 @@ class BottomBar(QWidget):
 	\nVersion 2.2.0
 	- Possibility of choosing keywords for alarms (Error, Warning, Info)
 	- Behavior.Acknowledge replacing bug fixed
+	- GUI style changed
 	\nVersion 2.1.0
 	- PyGuiTemplate implemented
 	- Tmx encoding improved
@@ -696,45 +767,46 @@ class InfoDialog(QDialog):
 		super(InfoDialog, Self).__init__()
 
 		# Create title bar
-		Self.TitleBar = TitleBar(Self, "Info", WINDOW_COLOR_STYLE, False, False, False)
+		Self.TitleBar = TitleBar(Self, "Info", DEFAULT_GUI_COLOR["WindowBorderStandard"], False, False, False)
 		Self.setContentsMargins(0, Self.TitleBar.height(), 0, 0)
 
 		# Set dialog styles
 		Style = """
-			QWidget{
-				background-color:qlineargradient(spread:pad, x1:1, y1:0, x2:1, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(20, 20, 20, 255));
-				color:#cccccc;
-				font: ReplaceFontSizepx \"Bahnschrift SemiLight SemiConde\";
+			QWidget {
+				background-color: >>Background<<;
+				color: >>ColorInput<<;
+				font: >>Font<<px ">>StandardFont<<";
 			}
 
-			QDialog{
-				border: 2px solid ReplaceColor;
+			QDialog {
+				border: 2px solid >>WindowBorderStandard<<;
 			}
 
-			QLabel{
-				background-color:transparent;
-				color:#888888;
-				qproperty-alignment: \'AlignVCenter | AlignCenter\';
-				padding: 10px;
+			QLabel {
+				background-color: >>BackgroundOutput<<;
+				color: >>ColorOutput<<;
+				qproperty-alignment: "AlignVCenter | AlignCenter";
+				padding: 5px;
+				border-radius: 8px;
 			}
 
-			QPushButton{
+			QPushButton {
 				background-color: #222222;
-				width: ReplaceButtonWidthpx;
-				height: ReplaceWidgetHeightpx;
-				border-style:solid;
-				color:#cccccc;
-				border-radius:8px;
+				width: >>ButtonWidth<<px;
+				height: >>WidgetHeight<<px;
+				border-style: solid;
+				color: >>ColorInput<<;
+				border-radius: 8px;
 			}
 
-			QPushButton:hover{
-				color:#cccccc;
+			QPushButton:hover {
+				color: >>ColorInput<<;
 				background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(55, 55, 55, 255), stop:0.505682 rgba(55, 55, 55, 255), stop:1 rgba(40, 40, 40, 255));
 			}
 
-			QPushButton:pressed{
+			QPushButton:pressed {
 				background-color: qlineargradient(spread:pad, x1:0.517, y1:0, x2:0.517, y2:1, stop:0 rgba(45, 45, 45, 255), stop:0.505682 rgba(40, 40, 40, 255), stop:1 rgba(45, 45, 45, 255));
-				color:#ffffff;
+				color: #ffffff;
 			}
 			"""
 		Self.setStyleSheet(FinishStyle(Style))
@@ -776,20 +848,21 @@ class ErrorDialog(QDialog):
 
 		# Set dialog styles
 		Style = """
-			QWidget{
-				background-color:qlineargradient(spread:pad, x1:1, y1:0, x2:1, y2:1, stop:0 rgba(0, 0, 0, 255), stop:1 rgba(20, 20, 20, 255));
-				color:#cccccc;
-				font: ReplaceFontSizepx \"Bahnschrift SemiLight SemiConde\";
+			QWidget {
+				background-color: >>Background<<;
+				color: >>ColorInput<<;
+				font: >>Font<<px ">>StandardFont<<";
 			}
 
-			QDialog{
-				border: 2px solid #6e1010;
+			QDialog {
+				border: 2px solid >>WindowBorderError<<;
 			}
 
-			QLabel{
-				background-color:transparent;
-				color:#888888;
+			QLabel {
+				background-color: >>BackgroundOutput<<;
+				color: >>ColorOutput<<;
 				padding: 5px;
+				border-radius: 8px;
 			}
 			"""
 		Self.setStyleSheet(FinishStyle(Style))
@@ -843,9 +916,11 @@ def ShowAdjusted(Widget: QWidget):
 
 # Finish style with defined constants
 def FinishStyle(Style: str):
-	Style = Style.replace("ReplaceColor", WINDOW_COLOR_STYLE)
+	Style = Style.replace(">>StandardFont<<", DEFAULT_GUI_FONT)
 	for DefaultSizeElement in DEFAULT_GUI_SIZE:
-		Style = Style.replace("Replace" + DefaultSizeElement, gAdjustedGuiSize[DefaultSizeElement])
+		Style = Style.replace(">>" + DefaultSizeElement + "<<", gAdjustedGuiSize[DefaultSizeElement])
+	for DefaultColorElement in DEFAULT_GUI_COLOR:
+		Style = Style.replace(">>" + DefaultColorElement + "<<", DEFAULT_GUI_COLOR[DefaultColorElement])
 	return Style
 
 # Terminates the script

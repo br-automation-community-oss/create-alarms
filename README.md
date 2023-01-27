@@ -70,6 +70,7 @@ Properties Name and Message are generated automatically.
 __Version 2.2.0__
 - Possibility of choosing keywords for alarms (Error, Warning, Info)
 - Behavior.Acknowledge replacing bug fixed
+- GUI style changed
 
 __Version 2.1.0__
 - PyGuiTemplate implemented
