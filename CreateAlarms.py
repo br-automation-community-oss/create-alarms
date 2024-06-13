@@ -20,7 +20,7 @@ import pickle
 #####################################################################################################################################################
 # General
 WINDOW_TITLE = "Create alarms"
-SCRIPT_VERSION = "2.2.0"
+SCRIPT_VERSION = "2.3.0"
 
 # Window style
 DEFAULT_GUI_FONT = "Bahnschrift SemiLight SemiConde"
@@ -392,6 +392,16 @@ class MainWindow(QWidget):
 		ConfigLabel.setToolTip("Select configuration with .mpalarmxcore file")
 		Self.LayoutFL.addRow(ConfigLabel, Self.ConfigComboBox)
 
+		# Enable
+		Self.EnablePushButton = QPushButton("ENABLE")
+		Self.EnablePushButton.setToolTip("Turns on the prebuild function")
+		Self.EnablePushButton.setCheckable(True)
+		Self.EnablePushButton.setChecked(UserData["Enable"])
+		Self.EnablePushButton.setFixedHeight(50)
+		EnableLabel = QLabel("Enable prebuild")
+		EnableLabel.setToolTip("Turns on the prebuild function")
+		Self.LayoutFL.addRow(EnableLabel, Self.EnablePushButton)
+
 		# Debug option
 		Self.DebugPushButton = QPushButton("DEBUG")
 		Self.DebugPushButton.setToolTip("Turns on printing of debug messages")
@@ -431,6 +441,18 @@ class MainWindow(QWidget):
 		Self.MpConfigNameRow.addSpacing(10)
 		Self.MpConfigNameRow.addWidget(MpConfigExtensionLabel)
 		Self.LayoutFL.addRow(MpConfigNameLabel, Self.MpConfigNameRow)
+
+		# MpLink name
+		Self.MpLinkLineEdit = QLineEdit()
+		Self.MpLinkLineEdit.setToolTip("Name of the alarm MpLink")
+		Self.MpLinkLineEdit.setText(UserData["MpLink"])
+		Self.MpLinkLineEdit.setFixedHeight(50)
+		MpLinkLabel = QLabel("MpLink name")
+		MpLinkLabel.setToolTip("Name of the alarm MpLink")
+		Self.MpLinkRow = QHBoxLayout()
+		Self.MpLinkRow.addWidget(Self.MpLinkLineEdit)
+		Self.MpLinkRow.addSpacing(10)
+		Self.LayoutFL.addRow(MpLinkLabel, Self.MpLinkRow)
 
 		# Program name
 		Self.ProgramNameLineEdit = QLineEdit()
@@ -497,6 +519,7 @@ class MainWindow(QWidget):
 	# Window actions
 	def CreateActions(Self):
 		# Actions of global buttons
+		Self.BottomBar.RunPB.clicked.connect(Self.Run)
 		Self.BottomBar.OkPB.clicked.connect(Self.aGuiAccepted)
 		Self.BottomBar.CancelPB.clicked.connect(Self.close)
 		Self.InfoD.OkPB.clicked.connect(Self.close)
@@ -527,26 +550,37 @@ class MainWindow(QWidget):
 				TextInput1.setStyleSheet("QLineEdit{background:#661111;}")
 				TextInput2.setStyleSheet("QLineEdit{background:#661111;}")
 
+	# Run the script from the configuration
+	def Run(Self):
+		Self.GetUserData()
+		Prebuild()
+
 	# GUI was accepted by OK button
 	def aGuiAccepted(Self):
 		if (Self.TmxNameLineEdit.text() != "") and (Self.MpConfigNameLineEdit.text() != "") and (Self.ProgramNameLineEdit.text() != "") and (Self.ErrorKeywordLineEdit.text() != "") and (Self.WarningKeywordLineEdit.text() != "") and (Self.InfoKeywordLineEdit.text() != "") and (Self.MpConfigNameLineEdit.text() != Self.ProgramNameLineEdit.text()):
-			UserData["Configuration"] = Self.ConfigComboBox.currentText()
-			UserData["Debug"] = Self.DebugPushButton.isChecked()
-			UserData["UpdateTmx"] = Self.UpdateTmxCheckBox.isChecked()
-			UserData["UpdateMpConfig"] = Self.UpdateMpConfigCheckBox.isChecked()
-			UserData["UpdateProgram"] = Self.UpdateProgramCheckBox.isChecked()
-			UserData["TmxName"] = Self.TmxNameLineEdit.text()
-			UserData["MpConfigName"] = Self.MpConfigNameLineEdit.text()
-			UserData["ProgramName"] = Self.ProgramNameLineEdit.text()
-			UserData["AlarmKeyword"]["Error"] = Self.ErrorKeywordLineEdit.text()
-			UserData["AlarmKeyword"]["Warning"] = Self.WarningKeywordLineEdit.text()
-			UserData["AlarmKeyword"]["Info"] = Self.InfoKeywordLineEdit.text()
+			Self.GetUserData()
 			
 			with open(UserDataPath, "wb") as CreateAlarmsSettings:
 				pickle.dump(UserData, CreateAlarmsSettings)
 				
 			Self.InfoD.MessageL.setText("The configuration has been set.")
 			ShowAdjusted(Self.InfoD)
+
+	# Get data from widgets and fill in the UserData structure
+	def GetUserData(Self):
+		UserData["Configuration"] = Self.ConfigComboBox.currentText()
+		UserData["Enable"] = Self.EnablePushButton.isChecked()
+		UserData["Debug"] = Self.DebugPushButton.isChecked()
+		UserData["UpdateTmx"] = Self.UpdateTmxCheckBox.isChecked()
+		UserData["UpdateMpConfig"] = Self.UpdateMpConfigCheckBox.isChecked()
+		UserData["UpdateProgram"] = Self.UpdateProgramCheckBox.isChecked()
+		UserData["TmxName"] = Self.TmxNameLineEdit.text()
+		UserData["MpConfigName"] = Self.MpConfigNameLineEdit.text()
+		UserData["MpLink"] = Self.MpLinkLineEdit.text()
+		UserData["ProgramName"] = Self.ProgramNameLineEdit.text()
+		UserData["AlarmKeyword"]["Error"] = Self.ErrorKeywordLineEdit.text()
+		UserData["AlarmKeyword"]["Warning"] = Self.WarningKeywordLineEdit.text()
+		UserData["AlarmKeyword"]["Info"] = Self.InfoKeywordLineEdit.text()
 
 	# State of the window changed
 	def changeEvent(Self, Event: QEvent):
@@ -718,6 +752,10 @@ class BottomBar(QWidget):
 	\nSupport contacts
 	michal.vavrik@br-automation.com
 	adam.sefranek@br-automation.com
+	\nVersion 2.3.0
+	- Enable of prebuild function added
+	- Possibility to run the script from configuration
+	- Editable MpLink name
 	\nVersion 2.2.0
 	- Possibility of choosing keywords for alarms (Error, Warning, Info)
 	- Behavior.Acknowledge replacing bug fixed
@@ -747,13 +785,15 @@ class BottomBar(QWidget):
 	- Behavior.Monitoring.MonitoredPV bug fixed
 	- Tags are taken from the graphics editor
 	- Monitoring alarm types have no longer Set and Reset in the Alarms program
-	- Path to user data changed to AppData\Roaming\BR\Scripts\CreateAlarms\\
+	- Path to user data changed to AppData/Roaming/BR/Scripts/CreateAlarms/
 	- Error mode added
 	\nVersion 1.0.0
 	- Script creation
 	- Basic functions implemented""")
 		BottomBarHBL.addWidget(VersionL, 0, Qt.AlignLeft)
 
+		Self.RunPB = QPushButton("RUN")
+		BottomBarHBL.addWidget(Self.RunPB, 10, Qt.AlignRight)
 		Self.OkPB = QPushButton("OK")
 		BottomBarHBL.addWidget(Self.OkPB, 10, Qt.AlignRight)
 		Self.CancelPB = QPushButton("Cancel")
@@ -1499,52 +1539,52 @@ def AlarmSetReset(SetResetText, Alarm, ProgramLanguage, ResetAlarm):
 		if not(ResetAlarm):
 			SetResetText += Tabs + "IF " + AlarmName + " THEN"
 			SetResetText += ConfigName
-			SetResetText += Tabs + "\tMpAlarmXSet(gAlarmXCore, HelpName);"
+			SetResetText += Tabs + f"\tMpAlarmXSet({UserData["MpLink"]}, HelpName);"
 			SetResetText += Tabs + "\t" + AlarmName + "\t:= FALSE;"
 		else:
 			SetResetText += Tabs + "IF (" + AlarmName + " <> Flag." + AlarmName + ") THEN"
 			SetResetText += ConfigName
 			SetResetText += Tabs + "\tIF (" + AlarmName + " > Flag." + AlarmName + ") THEN"
-			SetResetText += Tabs + "\t\tMpAlarmXSet(gAlarmXCore, HelpName);"
+			SetResetText += Tabs + f"\t\tMpAlarmXSet({UserData["MpLink"]}, HelpName);"
 			SetResetText += Tabs + "\tELSE"
-			SetResetText += Tabs + "\t\tMpAlarmXReset(gAlarmXCore, HelpName);"
-			SetResetText += Tabs + "\tEND_IF;"
+			SetResetText += Tabs + f"\t\tMpAlarmXReset({UserData["MpLink"]}, HelpName);"
+			SetResetText += Tabs + "\tEND_IF"
 	else:
 		if not(ResetAlarm):
 			SetResetText += Tabs + "IF " + AlarmName + " THEN"
-			SetResetText += Tabs + "\tMpAlarmXSet(gAlarmXCore, '" + AlarmName + "');"
+			SetResetText += Tabs + f"\tMpAlarmXSet({UserData["MpLink"]}, '" + AlarmName + "');"
 			SetResetText += Tabs + "\t" + AlarmName + "\t:= FALSE;"
 		else:
 			SetResetText += Tabs + "IF (" + AlarmName + " > Flag." + AlarmName + ") THEN"
-			SetResetText += Tabs + "\tMpAlarmXSet(gAlarmXCore, '" + AlarmName + "');"
+			SetResetText += Tabs + f"\tMpAlarmXSet({UserData["MpLink"]}, '" + AlarmName + "');"
 			SetResetText += Tabs + "ELSIF (" + AlarmName + " < Flag." + AlarmName + ") THEN"
-			SetResetText += Tabs + "\tMpAlarmXReset(gAlarmXCore, '" + AlarmName + "');"
-	SetResetText += Tabs + "END_IF;"
+			SetResetText += Tabs + f"\tMpAlarmXReset({UserData["MpLink"]}, '" + AlarmName + "');"
+	SetResetText += Tabs + "END_IF"
 	if ResetAlarm:
 		SetResetText += Tabs + "Flag." + AlarmName + "\t:= " + AlarmName + ";"
 
 	for Index in range(NumberOfForLoops):
 		Tabs = Tabs[:-1]
-		SetResetText += Tabs + "END_FOR;"
+		SetResetText += Tabs + "END_FOR"
 	SetResetText += "\n\t"
 		
 	# Convert ST to C
 	if ProgramLanguage == LANGUAGE_C:
 		# FOR replacement
-		SetResetText = re.sub("([\t]*)FOR ([a-zA-Z0-9_]*) := ([0-9]*) TO ([0-9]*) DO", r"\1for (\2 = \3; \2 <= \4; \2++)\n\1{", SetResetText)
+		SetResetText = re.sub(r"([\t]*)FOR ([a-zA-Z0-9_]*) := ([0-9]*) TO ([0-9]*) DO", r"\1for (\2 = \3; \2 <= \4; \2++)\n\1{", SetResetText)
 		# IF replacement
-		SetResetText = re.sub("([\t]*)ELSIF \(([a-zA-Z0-9_.\[\]]*) ([<>=]*) ([a-zA-Z0-9_.\[\]]*)\) THEN", r"\1}\n\1else if (\2 \3 \4)\n\1{", SetResetText)
-		SetResetText = re.sub("([\t]*)ELSIF ([a-zA-Z0-9_.\[\]]*) THEN", r"\1}\n\1else if (\2)\n\1{", SetResetText)
-		SetResetText = re.sub("([\t]*)IF \(([a-zA-Z0-9_.\[\]]*) ([<>=]*) ([a-zA-Z0-9_.\[\]]*)\) THEN", r"\1if (\2 \3 \4)\n\1{", SetResetText)
-		SetResetText = re.sub("([\t]*)IF ([a-zA-Z0-9_.\[\]]*) THEN", r"\1if (\2)\n\1{", SetResetText)
-		SetResetText = re.sub("END_[a-zA-Z0-9_]*;", "}", SetResetText)
+		SetResetText = re.sub(r"([\t]*)ELSIF \(([a-zA-Z0-9_.\[\]]*) ([<>=]*) ([a-zA-Z0-9_.\[\]]*)\) THEN", r"\1}\n\1else if (\2 \3 \4)\n\1{", SetResetText)
+		SetResetText = re.sub(r"([\t]*)ELSIF ([a-zA-Z0-9_.\[\]]*) THEN", r"\1}\n\1else if (\2)\n\1{", SetResetText)
+		SetResetText = re.sub(r"([\t]*)IF \(([a-zA-Z0-9_.\[\]]*) ([<>=]*) ([a-zA-Z0-9_.\[\]]*)\) THEN", r"\1if (\2 \3 \4)\n\1{", SetResetText)
+		SetResetText = re.sub(r"([\t]*)IF ([a-zA-Z0-9_.\[\]]*) THEN", r"\1if (\2)\n\1{", SetResetText)
+		SetResetText = re.sub(r"END_[a-zA-Z0-9_]*;", "}", SetResetText)
 		# END_XXX occurrances
-		SetResetText = re.sub("([\t]*)ELSE", r"\1}\n\1else\n\1{", SetResetText)
+		SetResetText = re.sub(r"([\t]*)ELSE", r"\1}\n\1else\n\1{", SetResetText)
 		# Other
 		SetResetText = SetResetText.replace("'", "\"")
 		SetResetText = SetResetText.replace(":= ", "= ")
 		SetResetText = SetResetText.replace("<>", "!=")
-		SetResetText = SetResetText.replace("(gAlarmXCore", "(&gAlarmXCore")
+		SetResetText = SetResetText.replace(f"({UserData["MpLink"]}", f"(&{UserData["MpLink"]}")
 		SetResetText = SetResetText.replace("ADR", "(UDINT)&")
 		SetResetText = SetResetText.replace("SIZEOF", "sizeof")
 		SetResetText = SetResetText.replace("FALSE", "0")
@@ -1553,6 +1593,20 @@ def AlarmSetReset(SetResetText, Alarm, ProgramLanguage, ResetAlarm):
 
 # Prebuild mode function
 def Prebuild():
+
+	# Ouput window message
+	print("----------------------- Beginning of the script CreateAlarms " + SCRIPT_VERSION + " -----------------------")
+	if UserData["Configuration"] != "":
+		UsedConfiguration = UserData["Configuration"]
+	else:
+		UsedConfiguration = FindFilePath(ConfigPath, UserData["MpConfigName"] + ".mpalarmxcore", True)
+		UsedConfiguration = UsedConfiguration[UsedConfiguration.find("Physical") + 9:]
+		UsedConfiguration = UsedConfiguration[:UsedConfiguration.find("\\")]
+	print("Used configuration: " + UsedConfiguration)
+
+	# Get alarms from global variables and types
+	global Alarms
+	Alarms = GetAlarms()
 
 	DebugPrint("User settings", UserData)
 
@@ -1564,6 +1618,9 @@ def Prebuild():
 
 	# Update program file
 	if UserData["UpdateProgram"]: UpdateProgram()
+
+	# Ouput window message
+	print("--------------------------------- End of the script CreateAlarms ---------------------------------")
 
 # Creates all paths to one alarm with all possible array values
 def CreateNames(Alarm):
@@ -1933,36 +1990,19 @@ if not(RunMode == MODE_ERROR):
 		with open(UserDataPath, "rb") as CreateAlarmsSettings:
 			UserData = pickle.load(CreateAlarmsSettings)
 	except:
-		UserData = {"Configuration":"", "Debug": False, "UpdateTmx": True, "UpdateMpConfig": True, "UpdateProgram": True, "TmxName": "Alarms", "MpConfigName": "AlarmsCfg", "ProgramName": "Alarms", "MaxNesting": 15, "AlarmKeyword": {"Error": "Error", "Warning": "Warning", "Info": "Info"}}
+		UserData = {"Configuration":"", "Enable": False, "Debug": False, "UpdateTmx": True, "UpdateMpConfig": True, "UpdateProgram": True, "TmxName": "Alarms", "MpConfigName": "AlarmsCfg", "MpLink": "gAlarmXCore", "ProgramName": "Alarms", "MaxNesting": 15, "AlarmKeyword": {"Error": "Error", "Warning": "Warning", "Info": "Info"}}
 
-	if (len(UserData) != 10):
-		UserData = {"Configuration":"", "Debug": False, "UpdateTmx": True, "UpdateMpConfig": True, "UpdateProgram": True, "TmxName": "Alarms", "MpConfigName": "AlarmsCfg", "ProgramName": "Alarms", "MaxNesting": 15, "AlarmKeyword": {"Error": "Error", "Warning": "Warning", "Info": "Info"}}
+	if (len(UserData) != 12):
+		UserData = {"Configuration":"", "Enable": False, "Debug": False, "UpdateTmx": True, "UpdateMpConfig": True, "UpdateProgram": True, "TmxName": "Alarms", "MpConfigName": "AlarmsCfg", "MpLink": "gAlarmXCore", "ProgramName": "Alarms", "MaxNesting": 15, "AlarmKeyword": {"Error": "Error", "Warning": "Warning", "Info": "Info"}}
 
 	# Get selected config path
 	ConfigPath = os.path.join(ProjectPath, "Physical", UserData["Configuration"])
 
 # Run respective script mode
-if RunMode == MODE_PREBUILD:
-	
-	# Ouput window message
-	print("----------------------- Beginning of the script CreateAlarms " + SCRIPT_VERSION + " -----------------------")
-	if UserData["Configuration"] != "":
-		UsedConfiguration = UserData["Configuration"]
-	else:
-		UsedConfiguration = FindFilePath(ConfigPath, UserData["MpConfigName"] + ".mpalarmxcore", True)
-		UsedConfiguration = UsedConfiguration[UsedConfiguration.find("Physical") + 9:]
-		UsedConfiguration = UsedConfiguration[:UsedConfiguration.find("\\")]
-	print("Used configuration: " + UsedConfiguration)
-
-	# Get alarms from global variables and types
-	Alarms = GetAlarms()
-
+if (RunMode == MODE_PREBUILD) and UserData["Enable"]:
 	Prebuild()
 
-	# Ouput window message
-	print("--------------------------------- End of the script CreateAlarms ---------------------------------")
-
-else:
+elif not(RunMode == MODE_PREBUILD):
 	# Make application
 	Application = QApplication(sys.argv)
 
